@@ -2,7 +2,7 @@
 # With "Require review from Code Owners" enabled, a PR touching these paths
 # cannot merge until one of these owners approves.
 
-*                           @YOUR-ORG/maintainers
+*                           @Jumetra-Technologies/wakoTheDev
 
 # Safety-critical and security-sensitive areas need extra eyes
 /firmware/                  @YOUR-ORG/firmware-reviewers
@@ -10,5 +10,5 @@
 /apps/desktop/src/preload/  @YOUR-ORG/maintainers
 
 # The rules themselves: only maintainers can change them
-/.github/                   @YOUR-ORG/maintainers
-/docs/BRANCH_PROTECTION.md  @YOUR-ORG/maintainers
+/.github/                   @Jumetra-Technologies/wakoTheDev
+/docs/BRANCH_PROTECTION.md  @Jumetra-Technologies/wakoTheDev

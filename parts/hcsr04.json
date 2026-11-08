@@ -1,0 +1,14 @@
+{
+  "id": "hcsr04",
+  "name": "HC-SR04 Ultrasonic Sensor",
+  "category": "sensor",
+  "pins": [
+    { "id": "VCC", "electricalType": "power" },
+    { "id": "TRIG", "electricalType": "input" },
+    { "id": "ECHO", "electricalType": "output" },
+    { "id": "GND", "electricalType": "ground" }
+  ],
+  "ratings": { "voltageMin": 4.5, "voltageMax": 5.5 },
+  "timing": { "minIntervalMs": 60, "minRangeCm": 2, "maxRangeCm": 400 },
+  "bom": { "mpn": "HC-SR04", "accessories": [] }
+}

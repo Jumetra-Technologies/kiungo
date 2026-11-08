@@ -1,0 +1,13 @@
+appId: app.kiungo.desktop
+productName: Kiungo
+directories:
+  output: release
+files:
+  - out/**
+asar: true
+win:
+  target: nsis
+mac:
+  target: dmg
+linux:
+  target: [AppImage, deb]

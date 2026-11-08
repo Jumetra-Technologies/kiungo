@@ -1,7 +1,3 @@
-# Replace @YOUR-ORG/maintainers with your real GitHub team or usernames.
-# With "Require review from Code Owners" enabled, a PR touching these paths
-# cannot merge until one of these owners approves.
-
 *                           @Jumetra-Technologies/wakoTheDev
 
 # Safety-critical and security-sensitive areas need extra eyes

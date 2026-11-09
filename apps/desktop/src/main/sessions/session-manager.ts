@@ -2,16 +2,20 @@ import { RunState } from "@kiungo/core";
 import type { BoardRunner } from "./runner";
 
 /**
- * RUN-02 / RUN-03: creates one runner per board and drives the Run state machine.
- * Runners (emulated worker or real serial session) are added in later milestones.
+ * RUN-02 / RUN-03: owns the Run state machine and the runner for each board.
+ * The build, load and handshake stages are not wired in yet, so start() currently moves
+ * straight from idle to running for whatever runners are registered.
  */
 export class SessionManager {
   state: RunState = RunState.Idle;
   private runners: BoardRunner[] = [];
 
   async start(): Promise<void> {
+    if (this.state !== RunState.Idle) {
+      throw new Error(`cannot start while ${this.state}`);
+    }
     this.state = RunState.Checking;
-    // TODO(M5): circuit check -> build (Arduino CLI) -> load -> handshake -> run
+    await Promise.all(this.runners.map((runner) => runner.start()));
     this.state = RunState.Running;
   }
 

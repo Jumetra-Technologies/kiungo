@@ -6,7 +6,7 @@
 2. Branch from `main`: `feat/...`, `fix/...`, `docs/...`, `chore/...`.
 3. Keep PRs small and tied to spec feature IDs (for example `RUN-03`, `INJ-01`).
 4. Open a pull request and fill in the template.
-5. CI (`Lint, typecheck, test`) must pass.
+5. CI (`Quality gate`) must pass.
 6. At least one reviewer who is not the author must approve; Code Owners must approve changes
    to their areas (see `.github/CODEOWNERS`).
 7. Resolve every review comment. PRs are squash-merged.
@@ -14,7 +14,7 @@
 ## Local checks before opening a PR
 
 ```bash
-pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm validate:boards
+pnpm qc:selftest && pnpm qc
 ```
 
 ## Commit style
@@ -27,3 +27,6 @@ Changes under `firmware/` or anything that drives real outputs (SAF-xx, OUT-xx) 
 reviewer from the firmware team, and the PR must state how safe state was verified.
 
 Branch protection details: [docs/BRANCH_PROTECTION.md](docs/BRANCH_PROTECTION.md).
+
+The gate flags unfinished-work comments, syntax and type errors, failing tests and more, per
+language. See [docs/QUALITY_CONTROL.md](docs/QUALITY_CONTROL.md).

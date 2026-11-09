@@ -6,17 +6,17 @@ applied once by a repository admin.
 
 ## What the rules enforce
 
-| Rule                                   | Effect                                                             |
-| -------------------------------------- | ------------------------------------------------------------------ |
-| Pull request required                  | No direct pushes to `main`, including by admins                    |
-| 1 approving review                     | Someone other than the author must approve                         |
-| Code Owner review                      | Owners in `.github/CODEOWNERS` must approve changes to their paths |
-| Approval of the latest push            | Author cannot sneak in a change after approval                     |
-| Stale approvals dismissed              | New commits require a fresh review                                 |
-| Conversations resolved                 | All review threads closed before merge                             |
-| Required check "Lint, typecheck, test" | CI must pass, on an up-to-date branch                              |
-| Linear history, squash only            | Clean history, one commit per PR                                   |
-| No force push, no deletion             | `main` cannot be rewritten or removed                              |
+| Rule                          | Effect                                                             |
+| ----------------------------- | ------------------------------------------------------------------ |
+| Pull request required         | No direct pushes to `main`, including by admins                    |
+| 1 approving review            | Someone other than the author must approve                         |
+| Code Owner review             | Owners in `.github/CODEOWNERS` must approve changes to their paths |
+| Approval of the latest push   | Author cannot sneak in a change after approval                     |
+| Stale approvals dismissed     | New commits require a fresh review                                 |
+| Conversations resolved        | All review threads closed before merge                             |
+| Required check "Quality gate" | CI must pass, on an up-to-date branch                              |
+| Linear history, squash only   | Clean history, one commit per PR                                   |
+| No force push, no deletion    | `main` cannot be rewritten or removed                              |
 
 ## Option A: one command (recommended)
 
@@ -46,7 +46,7 @@ The script reads `.github/rulesets/main-protection.json` and creates (or updates
    - Require conversation resolution before merging
    - Allowed merge methods: **Squash** only
 6. Tick **Require status checks to pass**, enable **Require branches to be up to date**, and
-   add the check **Lint, typecheck, test** (it appears after CI has run once on a PR).
+   add the check **Quality gate** (it appears after CI has run once on a PR).
 7. Leave **Bypass list** empty so the rules apply to admins too. Save.
 
 ## Who can merge

@@ -16,8 +16,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
-    "validate:boards": "node scripts/validate-definitions.mjs",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "qc": "node scripts/qc/qc.mjs",
+    "qc:all": "node scripts/qc/qc.mjs --all",
+    "qc:selftest": "node --test scripts/qc/__tests__/lint.test.mjs scripts/qc/__tests__/parsers.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
@@ -25,6 +27,7 @@
     "husky": "^9.1.6",
     "prettier": "^3.3.3",
     "typescript": "^5.6.3",
-    "typescript-eslint": "^8.13.0"
+    "typescript-eslint": "^8.13.0",
+    "yaml": "^2.6.0"
   }
 }

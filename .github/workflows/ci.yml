@@ -15,11 +15,12 @@ permissions:
   contents: read
 
 jobs:
-  # The job name below ("Lint, typecheck, test") is the required status check
-  # referenced by the branch ruleset. Keep them in sync.
-  verify:
-    name: Lint, typecheck, test
+  # The job name below ("Quality gate") is the required status check referenced by the
+  # branch ruleset. Keep them in sync.
+  quality-gate:
+    name: Quality gate
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -27,9 +28,13 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      - name: Install native tools used by the gate
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cppcheck clang-format shellcheck
+          python3 -m pip install --user ruff
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm validate:boards
+      - name: Gate self-tests
+        run: pnpm qc:selftest
+      - name: Quality gate (every file, every language)
+        run: pnpm qc --all --strict-tools --format github

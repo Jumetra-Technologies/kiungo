@@ -6,8 +6,14 @@
 extern "C" {
 #endif
 
+// Resets the shim to its power-on state.
 void kg_init(void);
-void kg_poll(void);  // drain frames from the PC, update the value cache
+
+// Drains frames from the PC and updates the value cache. Never blocks.
+void kg_poll(void);
+
+// Number of kg_poll() calls since kg_init(); used by the handshake telemetry.
+uint32_t kg_poll_count(void);
 
 #ifdef __cplusplus
 }

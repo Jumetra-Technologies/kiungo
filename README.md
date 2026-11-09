@@ -9,8 +9,7 @@ Desktop application for hybrid robotics and IoT simulation. See
 corepack enable
 pnpm install
 pnpm dev          # launch the Electron app
-pnpm typecheck
-pnpm lint
+pnpm qc           # quality gate on changed files; pnpm qc:all for everything
 ```
 
 Requires Node 20.11+ (`.nvmrc`) and pnpm 9.
@@ -19,4 +18,5 @@ Requires Node 20.11+ (`.nvmrc`) and pnpm 9.
 
 `main` is protected. Nobody pushes to it directly: open a pull request, get it reviewed,
 and let the checks pass. See [CONTRIBUTING.md](CONTRIBUTING.md) and
-[docs/BRANCH_PROTECTION.md](docs/BRANCH_PROTECTION.md).
+[docs/BRANCH_PROTECTION.md](docs/BRANCH_PROTECTION.md). Code must pass the
+[quality gate](docs/QUALITY_CONTROL.md) before it can merge.

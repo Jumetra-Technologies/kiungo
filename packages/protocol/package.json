@@ -8,9 +8,10 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --coverage"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.4",
     "vitest": "^2.1.4"
   }
 }

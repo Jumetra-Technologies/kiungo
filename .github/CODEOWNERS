@@ -1,14 +1,14 @@
-# Code Owners
+# Replace @YOUR-ORG/maintainers with your real GitHub team or usernames.
 # With "Require review from Code Owners" enabled, a PR touching these paths
 # cannot merge until one of these owners approves.
 
-* @Okelo123 @wakoTheDev
+*                           @YOUR-ORG/maintainers
 
 # Safety-critical and security-sensitive areas need extra eyes
-/firmware/                  @Okelo123 @wakoTheDev
-/apps/desktop/src/main/     @Okelo123 @wakoTheDev
-/apps/desktop/src/preload/  @Okelo123 @wakoTheDev
+/firmware/                  @YOUR-ORG/firmware-reviewers
+/apps/desktop/src/main/     @YOUR-ORG/maintainers
+/apps/desktop/src/preload/  @YOUR-ORG/maintainers
 
 # The rules themselves: only maintainers can change them
-/.github/                   @Okelo123 @wakoTheDev
-/docs/BRANCH_PROTECTION.md  @Okelo123 @wakoTheDev
+/.github/                   @YOUR-ORG/maintainers
+/docs/BRANCH_PROTECTION.md  @YOUR-ORG/maintainers

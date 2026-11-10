@@ -1,0 +1,31 @@
+/*
+ * The 3D part view: a scene the turntable turns (see @kiungo/ui/use-turntable)
+ * and the WebGL canvas that fills it (render3d/PartCanvas).
+ */
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.scene:active,
+.scene[data-dragging] {
+  cursor: grabbing;
+}
+.still,
+.still:active {
+  cursor: inherit;
+  touch-action: auto;
+  pointer-events: none;
+}
+.scene:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ring);
+  border-radius: 14px;
+}
+.canvas {
+  position: absolute;
+  inset: 0;
+}

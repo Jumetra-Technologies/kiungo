@@ -1,0 +1,33 @@
+{
+  "name": "@kiungo/lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Engineering Lab interface shared by the website and the desktop app: canvas, parts panel, Inspector, dock and the session store.",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    "./*": "./src/*.tsx",
+    "./store": "./src/store.ts",
+    "./sound-pref": "./src/sound-pref.ts",
+    "./views/*": "./src/views/*.tsx",
+    "./render3d/PartCanvas": "./src/render3d/PartCanvas.tsx",
+    "./render3d/*": "./src/render3d/*.ts"
+  },
+  "dependencies": {
+    "@kiungo/core": "0.1.0",
+    "@kiungo/ui": "0.1.0",
+    "@xyflow/react": "^12.11.3",
+    "lucide-react": "^1.34.0",
+    "three": "0.186.1",
+    "zustand": "^5.0.15"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/three": "0.186.0"
+  }
+}

@@ -1,0 +1,6 @@
+# electron-updater's settings for a development copy, read only when KIUNGO_UPDATE_URL
+# points one at a feed (README.md, "Updates"). A packaged app gets app-update.yml from
+# electron-builder instead. The feed's address is KIUNGO_UPDATE_URL; this one is a stand-in.
+provider: generic
+url: http://127.0.0.1:8777
+updaterCacheDirName: kiungo-updater

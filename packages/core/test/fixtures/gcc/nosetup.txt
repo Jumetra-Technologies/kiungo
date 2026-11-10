@@ -1,0 +1,4 @@
+/home/ada/.config/Kiungo/builds/prj-1/core/core.a(main.cpp.o): In function `main':
+main.cpp:(.text.startup+0x0): undefined reference to `setup()'
+main.cpp:(.text.startup+0x4): undefined reference to `loop()'
+collect2: error: ld returned 1 exit status

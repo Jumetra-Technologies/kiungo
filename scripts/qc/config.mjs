@@ -12,6 +12,9 @@ export const config = {
     "coverage",
     ".vite",
     ".kiungo",
+    // Test inputs kept byte-for-byte: compiler output (CRLF Intel HEX) and sketches that are
+    // broken on purpose to test how build errors are reported. Linting them would change them.
+    "fixtures",
   ],
   ignoreFiles: ["pnpm-lock.yaml"],
 

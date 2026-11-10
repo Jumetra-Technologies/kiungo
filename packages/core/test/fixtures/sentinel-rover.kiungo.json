@@ -1,0 +1,906 @@
+{
+  "format": "kiungo-lab-session",
+  "version": 1,
+  "generator": "Kiungo MCP server 0.1.0 (claude)",
+  "session": {
+    "id": "lab-mv7t05ud-c3d99bab",
+    "name": "Sentinel Rover",
+    "projectId": null,
+    "createdAt": "2026-10-14T07:44:02.197Z",
+    "updatedAt": "2026-10-14T07:46:08.306Z",
+    "nodes": [
+      {
+        "id": "n-mv7t0bzb-f76c7b52",
+        "partId": "arduino-mega",
+        "label": "Brain",
+        "x": 80,
+        "y": 80,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0drp-d656b6fa",
+        "partId": "dc-motor",
+        "label": "Left drive",
+        "x": 540,
+        "y": 80,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0ffz-471bf4fe",
+        "partId": "dc-motor",
+        "label": "Right drive",
+        "x": 540,
+        "y": 280,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0h7s-3645d87b",
+        "partId": "hc-sr04",
+        "label": "Front sonar",
+        "x": 852,
+        "y": 80,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0iwn-cf533a3a",
+        "partId": "servo",
+        "label": "Sonar pan",
+        "x": 852,
+        "y": 280,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0qkc-1b5dadad",
+        "partId": "mpu6050",
+        "label": "Tilt IMU",
+        "x": 1164,
+        "y": 80,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0s6w-2ad0aa60",
+        "partId": "pir",
+        "label": "Rear PIR",
+        "x": 1164,
+        "y": 320,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0tsu-ddff3736",
+        "partId": "oled-ssd1306",
+        "label": "Status OLED",
+        "x": 1476,
+        "y": 80,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0vgv-34369c55",
+        "partId": "buzzer",
+        "label": "Alarm",
+        "x": 1476,
+        "y": 280,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0x8h-0d04d1d2",
+        "partId": "rgb-led",
+        "label": "Status light",
+        "x": 1788,
+        "y": 80,
+        "mode": "virtual"
+      },
+      {
+        "id": "n-mv7t0yzg-1449c293",
+        "partId": "hc-05",
+        "label": "Bluetooth link",
+        "x": 1788,
+        "y": 280,
+        "mode": "virtual"
+      }
+    ],
+    "wires": [
+      {
+        "id": "w-mv7t0drs-77cd6ae0",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "5V_ICSP"
+        },
+        "to": {
+          "node": "n-mv7t0drp-d656b6fa",
+          "pin": "VM"
+        }
+      },
+      {
+        "id": "w-mv7t0drs-00d9a2ff",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0drp-d656b6fa",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0drs-ef618ead",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D2"
+        },
+        "to": {
+          "node": "n-mv7t0drp-d656b6fa",
+          "pin": "IN1"
+        }
+      },
+      {
+        "id": "w-mv7t0drs-2e9eaf21",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D3"
+        },
+        "to": {
+          "node": "n-mv7t0drp-d656b6fa",
+          "pin": "IN2"
+        }
+      },
+      {
+        "id": "w-mv7t0drs-320e6260",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D4"
+        },
+        "to": {
+          "node": "n-mv7t0drp-d656b6fa",
+          "pin": "EN"
+        }
+      },
+      {
+        "id": "w-mv7t0fg1-76d64d2d",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "5V_ICSP"
+        },
+        "to": {
+          "node": "n-mv7t0ffz-471bf4fe",
+          "pin": "VM"
+        }
+      },
+      {
+        "id": "w-mv7t0fg1-8baedf45",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0ffz-471bf4fe",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0fg1-de60d843",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D5"
+        },
+        "to": {
+          "node": "n-mv7t0ffz-471bf4fe",
+          "pin": "IN1"
+        }
+      },
+      {
+        "id": "w-mv7t0fg1-e10c213b",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D6"
+        },
+        "to": {
+          "node": "n-mv7t0ffz-471bf4fe",
+          "pin": "IN2"
+        }
+      },
+      {
+        "id": "w-mv7t0fg1-36662573",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D7"
+        },
+        "to": {
+          "node": "n-mv7t0ffz-471bf4fe",
+          "pin": "EN"
+        }
+      },
+      {
+        "id": "w-mv7t0h7u-39ade83e",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "5V_ICSP"
+        },
+        "to": {
+          "node": "n-mv7t0h7s-3645d87b",
+          "pin": "VCC"
+        }
+      },
+      {
+        "id": "w-mv7t0h7u-5d5225e0",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D8"
+        },
+        "to": {
+          "node": "n-mv7t0h7s-3645d87b",
+          "pin": "TRIG"
+        }
+      },
+      {
+        "id": "w-mv7t0h7u-7eab4886",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D9"
+        },
+        "to": {
+          "node": "n-mv7t0h7s-3645d87b",
+          "pin": "ECHO"
+        }
+      },
+      {
+        "id": "w-mv7t0h7u-05f988eb",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0h7s-3645d87b",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0iwo-02c295a5",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0iwn-cf533a3a",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0iwo-074e93a1",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "5V_ICSP"
+        },
+        "to": {
+          "node": "n-mv7t0iwn-cf533a3a",
+          "pin": "VCC"
+        }
+      },
+      {
+        "id": "w-mv7t0iwo-70a755b9",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D10"
+        },
+        "to": {
+          "node": "n-mv7t0iwn-cf533a3a",
+          "pin": "SIG"
+        }
+      },
+      {
+        "id": "w-mv7t0qke-bae541c9",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "5V_ICSP"
+        },
+        "to": {
+          "node": "n-mv7t0qkc-1b5dadad",
+          "pin": "VCC"
+        }
+      },
+      {
+        "id": "w-mv7t0qke-4d35c254",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0qkc-1b5dadad",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0qke-32a892ad",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D21"
+        },
+        "to": {
+          "node": "n-mv7t0qkc-1b5dadad",
+          "pin": "SCL"
+        }
+      },
+      {
+        "id": "w-mv7t0qke-7f60f92b",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D20"
+        },
+        "to": {
+          "node": "n-mv7t0qkc-1b5dadad",
+          "pin": "SDA"
+        }
+      },
+      {
+        "id": "w-mv7t0s6y-ae3cb9e1",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "5V_ICSP"
+        },
+        "to": {
+          "node": "n-mv7t0s6w-2ad0aa60",
+          "pin": "VCC"
+        }
+      },
+      {
+        "id": "w-mv7t0s6y-21d5ed65",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0s6w-2ad0aa60",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0tsv-19355d1e",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0tsu-ddff3736",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0tsv-bf72e08e",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "5V_ICSP"
+        },
+        "to": {
+          "node": "n-mv7t0tsu-ddff3736",
+          "pin": "VCC"
+        }
+      },
+      {
+        "id": "w-mv7t0tsv-aaec9b47",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D21"
+        },
+        "to": {
+          "node": "n-mv7t0tsu-ddff3736",
+          "pin": "SCL"
+        }
+      },
+      {
+        "id": "w-mv7t0tsv-28356f6c",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D20"
+        },
+        "to": {
+          "node": "n-mv7t0tsu-ddff3736",
+          "pin": "SDA"
+        }
+      },
+      {
+        "id": "w-mv7t0vgw-ad8b4052",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0vgv-34369c55",
+          "pin": "N"
+        }
+      },
+      {
+        "id": "w-mv7t0x8k-72b32249",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D13"
+        },
+        "to": {
+          "node": "n-mv7t0x8h-0d04d1d2",
+          "pin": "R"
+        }
+      },
+      {
+        "id": "w-mv7t0x8k-f4e91584",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0x8h-0d04d1d2",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0yzi-bcbf8723",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "GND3"
+        },
+        "to": {
+          "node": "n-mv7t0yzg-1449c293",
+          "pin": "GND"
+        }
+      },
+      {
+        "id": "w-mv7t0yzi-6a616db3",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "5V_ICSP"
+        },
+        "to": {
+          "node": "n-mv7t0yzg-1449c293",
+          "pin": "VCC"
+        }
+      },
+      {
+        "id": "w-mv7t1kib-dfafe27b",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D11"
+        },
+        "to": {
+          "node": "n-mv7t0x8h-0d04d1d2",
+          "pin": "G"
+        }
+      },
+      {
+        "id": "w-mv7t1m6j-1c314890",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D12"
+        },
+        "to": {
+          "node": "n-mv7t0x8h-0d04d1d2",
+          "pin": "B"
+        }
+      },
+      {
+        "id": "w-mv7t1ntu-43294482",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D24"
+        },
+        "to": {
+          "node": "n-mv7t0s6w-2ad0aa60",
+          "pin": "OUT"
+        }
+      },
+      {
+        "id": "w-mv7t1pkr-e1187cdd",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D25"
+        },
+        "to": {
+          "node": "n-mv7t0vgv-34369c55",
+          "pin": "P"
+        }
+      },
+      {
+        "id": "w-mv7t1rk4-3e4268b3",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D18"
+        },
+        "to": {
+          "node": "n-mv7t0yzg-1449c293",
+          "pin": "RXD"
+        }
+      },
+      {
+        "id": "w-mv7t1tj5-af263293",
+        "from": {
+          "node": "n-mv7t0bzb-f76c7b52",
+          "pin": "D19"
+        },
+        "to": {
+          "node": "n-mv7t0yzg-1449c293",
+          "pin": "TXD"
+        }
+      }
+    ],
+    "log": [
+      {
+        "id": "log-mv7t05ud-4eb43a16",
+        "at": "2026-10-14T07:44:02.197Z",
+        "kind": "session",
+        "text": "Session “Sentinel Rover” started"
+      },
+      {
+        "id": "log-mv7t05ud-6e73bfe0",
+        "at": "2026-10-14T07:44:02.197Z",
+        "kind": "note",
+        "text": "Created by an AI model through the Kiungo MCP server"
+      },
+      {
+        "id": "log-mv7t0bzb-b3debbe4",
+        "at": "2026-10-14T07:44:10.151Z",
+        "kind": "build",
+        "text": "Added Brain",
+        "nodes": [
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0drp-8839138c",
+        "at": "2026-10-14T07:44:12.469Z",
+        "kind": "build",
+        "text": "Added Left drive",
+        "nodes": [
+          "n-mv7t0drp-d656b6fa"
+        ]
+      },
+      {
+        "id": "log-mv7t0drs-f386df2a",
+        "at": "2026-10-14T07:44:12.472Z",
+        "kind": "wire",
+        "text": "Auto-wired Left drive to Brain (5 wires)",
+        "nodes": [
+          "n-mv7t0drp-d656b6fa",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0ffz-8613ab7c",
+        "at": "2026-10-14T07:44:14.639Z",
+        "kind": "build",
+        "text": "Added Right drive",
+        "nodes": [
+          "n-mv7t0ffz-471bf4fe"
+        ]
+      },
+      {
+        "id": "log-mv7t0fg2-b3fe2987",
+        "at": "2026-10-14T07:44:14.642Z",
+        "kind": "wire",
+        "text": "Auto-wired Right drive to Brain (5 wires)",
+        "nodes": [
+          "n-mv7t0ffz-471bf4fe",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0h7s-82cc2d31",
+        "at": "2026-10-14T07:44:16.936Z",
+        "kind": "build",
+        "text": "Added Front sonar",
+        "nodes": [
+          "n-mv7t0h7s-3645d87b"
+        ]
+      },
+      {
+        "id": "log-mv7t0h7u-94f88612",
+        "at": "2026-10-14T07:44:16.938Z",
+        "kind": "wire",
+        "text": "Auto-wired Front sonar to Brain (4 wires)",
+        "nodes": [
+          "n-mv7t0h7s-3645d87b",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0iwn-e962115a",
+        "at": "2026-10-14T07:44:19.127Z",
+        "kind": "build",
+        "text": "Added Sonar pan",
+        "nodes": [
+          "n-mv7t0iwn-cf533a3a"
+        ]
+      },
+      {
+        "id": "log-mv7t0iwp-464dc0be",
+        "at": "2026-10-14T07:44:19.129Z",
+        "kind": "wire",
+        "text": "Auto-wired Sonar pan to Brain (3 wires)",
+        "nodes": [
+          "n-mv7t0iwn-cf533a3a",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0qkc-c176f7ce",
+        "at": "2026-10-14T07:44:29.052Z",
+        "kind": "build",
+        "text": "Added Tilt IMU",
+        "nodes": [
+          "n-mv7t0qkc-1b5dadad"
+        ]
+      },
+      {
+        "id": "log-mv7t0qke-05c90671",
+        "at": "2026-10-14T07:44:29.054Z",
+        "kind": "wire",
+        "text": "Auto-wired Tilt IMU to Brain (4 wires)",
+        "nodes": [
+          "n-mv7t0qkc-1b5dadad",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0s6w-c6e6c311",
+        "at": "2026-10-14T07:44:31.160Z",
+        "kind": "build",
+        "text": "Added Rear PIR",
+        "nodes": [
+          "n-mv7t0s6w-2ad0aa60"
+        ]
+      },
+      {
+        "id": "log-mv7t0s6y-5a851886",
+        "at": "2026-10-14T07:44:31.162Z",
+        "kind": "wire",
+        "text": "Auto-wired Rear PIR to Brain (3 wires)",
+        "nodes": [
+          "n-mv7t0s6w-2ad0aa60",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0tsu-db1e26f0",
+        "at": "2026-10-14T07:44:33.246Z",
+        "kind": "build",
+        "text": "Added Status OLED",
+        "nodes": [
+          "n-mv7t0tsu-ddff3736"
+        ]
+      },
+      {
+        "id": "log-mv7t0tsv-6c98abde",
+        "at": "2026-10-14T07:44:33.247Z",
+        "kind": "wire",
+        "text": "Auto-wired Status OLED to Brain (4 wires)",
+        "nodes": [
+          "n-mv7t0tsu-ddff3736",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0vgv-ed726ed0",
+        "at": "2026-10-14T07:44:35.407Z",
+        "kind": "build",
+        "text": "Added Alarm",
+        "nodes": [
+          "n-mv7t0vgv-34369c55"
+        ]
+      },
+      {
+        "id": "log-mv7t0vgw-6d2fbf67",
+        "at": "2026-10-14T07:44:35.408Z",
+        "kind": "wire",
+        "text": "Auto-wired Alarm to Brain (2 wires)",
+        "nodes": [
+          "n-mv7t0vgv-34369c55",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0x8h-27f3d26b",
+        "at": "2026-10-14T07:44:37.697Z",
+        "kind": "build",
+        "text": "Added Status light",
+        "nodes": [
+          "n-mv7t0x8h-0d04d1d2"
+        ]
+      },
+      {
+        "id": "log-mv7t0x8k-3a7f5d15",
+        "at": "2026-10-14T07:44:37.700Z",
+        "kind": "wire",
+        "text": "Auto-wired Status light to Brain (4 wires)",
+        "nodes": [
+          "n-mv7t0x8h-0d04d1d2",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t0yzg-cf6486a6",
+        "at": "2026-10-14T07:44:39.964Z",
+        "kind": "build",
+        "text": "Added Bluetooth link",
+        "nodes": [
+          "n-mv7t0yzg-1449c293"
+        ]
+      },
+      {
+        "id": "log-mv7t0yzi-f033ccd7",
+        "at": "2026-10-14T07:44:39.966Z",
+        "kind": "wire",
+        "text": "Auto-wired Bluetooth link to Brain (4 wires)",
+        "nodes": [
+          "n-mv7t0yzg-1449c293",
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t1ip7-2f1bc593",
+        "at": "2026-10-14T07:45:05.515Z",
+        "kind": "build",
+        "text": "Removed 6 wire(s)"
+      },
+      {
+        "id": "log-mv7t1kib-c6c890e3",
+        "at": "2026-10-14T07:45:07.859Z",
+        "kind": "wire",
+        "text": "Wired Brain.D11 → Status light.G",
+        "nodes": [
+          "n-mv7t0bzb-f76c7b52",
+          "n-mv7t0x8h-0d04d1d2"
+        ]
+      },
+      {
+        "id": "log-mv7t1m6j-c9b8581e",
+        "at": "2026-10-14T07:45:10.027Z",
+        "kind": "wire",
+        "text": "Wired Brain.D12 → Status light.B",
+        "nodes": [
+          "n-mv7t0bzb-f76c7b52",
+          "n-mv7t0x8h-0d04d1d2"
+        ]
+      },
+      {
+        "id": "log-mv7t1ntu-48c04bc6",
+        "at": "2026-10-14T07:45:12.162Z",
+        "kind": "wire",
+        "text": "Wired Brain.D24 → Rear PIR.OUT",
+        "nodes": [
+          "n-mv7t0bzb-f76c7b52",
+          "n-mv7t0s6w-2ad0aa60"
+        ]
+      },
+      {
+        "id": "log-mv7t1pkr-44615c04",
+        "at": "2026-10-14T07:45:14.427Z",
+        "kind": "wire",
+        "text": "Wired Brain.D25 → Alarm.P",
+        "nodes": [
+          "n-mv7t0bzb-f76c7b52",
+          "n-mv7t0vgv-34369c55"
+        ]
+      },
+      {
+        "id": "log-mv7t1rk4-9a44970b",
+        "at": "2026-10-14T07:45:16.996Z",
+        "kind": "wire",
+        "text": "Wired Brain.D18 → Bluetooth link.RXD",
+        "nodes": [
+          "n-mv7t0bzb-f76c7b52",
+          "n-mv7t0yzg-1449c293"
+        ]
+      },
+      {
+        "id": "log-mv7t1tj6-65b67ed9",
+        "at": "2026-10-14T07:45:19.554Z",
+        "kind": "wire",
+        "text": "Wired Brain.D19 → Bluetooth link.TXD",
+        "nodes": [
+          "n-mv7t0bzb-f76c7b52",
+          "n-mv7t0yzg-1449c293"
+        ]
+      },
+      {
+        "id": "log-mv7t2ft3-f17b391c",
+        "at": "2026-10-14T07:45:48.423Z",
+        "kind": "state",
+        "text": "Brain: set warnCm=25, gateRest=90, gateOpen=170",
+        "nodes": [
+          "n-mv7t0bzb-f76c7b52"
+        ]
+      },
+      {
+        "id": "log-mv7t2hwp-0b040a35",
+        "at": "2026-10-14T07:45:51.145Z",
+        "kind": "state",
+        "text": "Left drive: set speed=70, direction=forward",
+        "nodes": [
+          "n-mv7t0drp-d656b6fa"
+        ]
+      },
+      {
+        "id": "log-mv7t2jn3-a77ce05e",
+        "at": "2026-10-14T07:45:53.391Z",
+        "kind": "state",
+        "text": "Right drive: set speed=70, direction=forward",
+        "nodes": [
+          "n-mv7t0ffz-471bf4fe"
+        ]
+      },
+      {
+        "id": "log-mv7t2lhz-afe5d8df",
+        "at": "2026-10-14T07:45:55.799Z",
+        "kind": "state",
+        "text": "Tilt IMU: set pitch=6, roll=-2",
+        "nodes": [
+          "n-mv7t0qkc-1b5dadad"
+        ]
+      },
+      {
+        "id": "log-mv7t2ng0-ff3e8d9a",
+        "at": "2026-10-14T07:45:58.320Z",
+        "kind": "state",
+        "text": "Front sonar: set distanceCm=80",
+        "nodes": [
+          "n-mv7t0h7s-3645d87b"
+        ]
+      },
+      {
+        "id": "log-mv7t2p8j-21823c77",
+        "at": "2026-10-14T07:46:00.643Z",
+        "kind": "state",
+        "text": "Rear PIR: set motion=false",
+        "nodes": [
+          "n-mv7t0s6w-2ad0aa60"
+        ]
+      },
+      {
+        "id": "log-mv7t2t6j-78da00f5",
+        "at": "2026-10-14T07:46:05.755Z",
+        "kind": "state",
+        "text": "Front sonar: set distanceCm=12",
+        "nodes": [
+          "n-mv7t0h7s-3645d87b"
+        ]
+      },
+      {
+        "id": "log-mv7t2v5d-fae4db07",
+        "at": "2026-10-14T07:46:08.305Z",
+        "kind": "state",
+        "text": "Rear PIR: set motion=true",
+        "nodes": [
+          "n-mv7t0s6w-2ad0aa60"
+        ]
+      }
+    ],
+    "view": "top",
+    "runMs": 0,
+    "inputs": {
+      "n-mv7t0bzb-f76c7b52": {
+        "warnCm": 25,
+        "gateRest": 90,
+        "gateOpen": 170
+      },
+      "n-mv7t0drp-d656b6fa": {
+        "source": "set",
+        "speed": 70,
+        "direction": "forward"
+      },
+      "n-mv7t0ffz-471bf4fe": {
+        "source": "set",
+        "speed": 70,
+        "direction": "forward"
+      },
+      "n-mv7t0qkc-1b5dadad": {
+        "source": "set",
+        "pitch": 6,
+        "roll": -2
+      },
+      "n-mv7t0h7s-3645d87b": {
+        "source": "set",
+        "distanceCm": 12
+      },
+      "n-mv7t0s6w-2ad0aa60": {
+        "source": "set",
+        "motion": true
+      }
+    },
+    "runtime": null
+  }
+}

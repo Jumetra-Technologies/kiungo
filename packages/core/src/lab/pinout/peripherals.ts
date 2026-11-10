@@ -1,0 +1,302 @@
+import { type Pinout } from "./types";
+import { peripheral, pp } from "./helpers";
+
+export const PERIPHERALS: Pinout[] = [
+  // Sensors
+  peripheral(
+    "dht11",
+    5,
+    [3, 5.5],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("DATA", "DATA", "io", true, "Single-wire data; 10 kΩ pull-up to VCC"),
+      pp("NC", "NC", "opt", false, "Not connected"),
+      pp("GND", "GND", "gnd"),
+    ],
+  ),
+  peripheral(
+    "hc-sr04",
+    5,
+    [4.5, 5.5],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("TRIG", "Trig", "drive", true, "10 µs pulse starts a ping"),
+      pp("ECHO", "Echo", "out-digital", true, "High for the echo's round trip, at 5 V"),
+      pp("GND", "GND", "gnd"),
+    ],
+  ),
+  {
+    ...peripheral(
+      "pir",
+      3.3,
+      [4.5, 20],
+      [
+        pp("VCC", "VCC", "vcc"),
+        pp("OUT", "OUT", "out-digital", true, "3.3 V while motion is seen"),
+        pp("GND", "GND", "gnd"),
+      ],
+    ),
+    tolerates5V: true,
+  },
+  peripheral(
+    "dht22",
+    5,
+    [3.3, 6],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("DATA", "DATA", "io", true, "Single-wire data; 10 kΩ pull-up"),
+      pp("NC", "NC", "opt", false),
+      pp("GND", "GND", "gnd"),
+    ],
+  ),
+  peripheral(
+    "am2302",
+    5,
+    [3.3, 5.5],
+    [pp("VCC", "Red VCC", "vcc"), pp("DATA", "Yellow DATA", "io"), pp("GND", "Black GND", "gnd")],
+  ),
+  peripheral(
+    "ldr",
+    5,
+    [0, 5.5],
+    [
+      pp("L1", "Leg 1", "vcc", true, "To VCC"),
+      pp("L2", "Leg 2", "out-analog", true, "To an analog pin, 10 kΩ to GND"),
+    ],
+  ),
+  peripheral(
+    "ds18b20",
+    5,
+    [3, 5.5],
+    [
+      pp("GND", "GND", "gnd"),
+      pp("DQ", "DQ", "io", true, "1-Wire data; 4.7 kΩ pull-up"),
+      pp("VDD", "VDD", "vcc"),
+    ],
+  ),
+  peripheral(
+    "soil-moisture",
+    5,
+    [3.3, 5],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("GND", "GND", "gnd"),
+      pp("D0", "D0", "out-digital", false, "Goes low past the threshold"),
+      pp("A0", "A0", "out-analog", false, "Wetter soil, lower voltage"),
+    ],
+  ),
+  peripheral(
+    "mq2",
+    5,
+    [4.5, 5.5],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("GND", "GND", "gnd"),
+      pp("D0", "D0", "out-digital", false, "Low when gas passes the threshold"),
+      pp("A0", "A0", "out-analog", false, "More gas, higher voltage"),
+    ],
+  ),
+  peripheral(
+    "mpu6050",
+    5,
+    [3.3, 5],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("GND", "GND", "gnd"),
+      pp("SCL", "SCL", "scl"),
+      pp("SDA", "SDA", "sda"),
+      pp("XDA", "XDA", "opt", false),
+      pp("XCL", "XCL", "opt", false),
+      pp("AD0", "AD0", "opt", false, "Low: 0x68, high: 0x69"),
+      pp("INT", "INT", "opt", false, "Data-ready interrupt"),
+    ],
+  ),
+  peripheral(
+    "bmp280",
+    3.3,
+    [1.7, 3.6],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("GND", "GND", "gnd"),
+      pp("SCL", "SCL", "scl"),
+      pp("SDA", "SDA", "sda"),
+      pp("CSB", "CSB", "opt", false),
+      pp("SDO", "SDO", "opt", false, "Low: 0x76, high: 0x77"),
+    ],
+  ),
+  // Outputs
+  peripheral(
+    "led",
+    5,
+    [0, 5.5],
+    [
+      pp("A", "Anode (+)", "drive", true, "From an output pin, through 220 Ω"),
+      pp("C", "Cathode (−)", "gnd"),
+    ],
+  ),
+  peripheral(
+    "rgb-led",
+    5,
+    [0, 5.5],
+    [
+      pp("R", "R", "pwm", false, "Red, through 220 Ω to a PWM pin"),
+      pp("GND", "GND", "gnd"),
+      pp("G", "G", "pwm", false, "Green, through 220 Ω"),
+      pp("B", "B", "pwm", false, "Blue, through 220 Ω"),
+    ],
+  ),
+  peripheral(
+    "buzzer",
+    5,
+    [3.5, 5.5],
+    [pp("P", "+", "drive", true, "From an output pin"), pp("N", "−", "gnd")],
+  ),
+  peripheral(
+    "servo",
+    5,
+    [4.8, 6],
+    [
+      pp("GND", "GND (brown)", "gnd"),
+      pp("VCC", "VCC (red)", "vcc"),
+      pp("SIG", "Signal (orange)", "pwm", true, "50 Hz pulse sets the angle"),
+    ],
+  ),
+  peripheral(
+    "dc-motor",
+    5,
+    [3, 6],
+    [
+      pp("VM", "VM", "vcc", true, "Motor supply through the driver"),
+      pp("GND", "GND", "gnd"),
+      pp("IN1", "IN1", "drive", false, "Direction"),
+      pp("IN2", "IN2", "drive", false, "Direction"),
+      pp("EN", "EN / PWM", "pwm", false, "Speed"),
+    ],
+  ),
+  peripheral(
+    "relay",
+    5,
+    [4.5, 5.5],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("GND", "GND", "gnd"),
+      pp("IN", "IN", "drive", true, "Low energises the coil"),
+      pp("COM", "COM", "load"),
+      pp("NO", "NO", "load"),
+      pp("NC", "NC", "load"),
+    ],
+  ),
+  peripheral(
+    "stepper-motor",
+    5,
+    [4.5, 5.5],
+    [
+      pp("IN1", "IN1", "drive"),
+      pp("IN2", "IN2", "drive"),
+      pp("IN3", "IN3", "drive"),
+      pp("IN4", "IN4", "drive"),
+      pp("VCC", "+", "vcc"),
+      pp("GND", "−", "gnd"),
+    ],
+  ),
+  // Displays
+  peripheral(
+    "lcd-16x2",
+    5,
+    [4.5, 5.5],
+    [
+      pp("GND", "GND", "gnd"),
+      pp("VCC", "VCC", "vcc"),
+      pp("SDA", "SDA", "sda"),
+      pp("SCL", "SCL", "scl"),
+    ],
+  ),
+  peripheral(
+    "oled-ssd1306",
+    5,
+    [3.3, 5],
+    [
+      pp("GND", "GND", "gnd"),
+      pp("VCC", "VCC", "vcc"),
+      pp("SCL", "SCL", "scl"),
+      pp("SDA", "SDA", "sda"),
+    ],
+  ),
+  peripheral(
+    "tft-display",
+    5,
+    [3.3, 5],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("GND", "GND", "gnd"),
+      pp("CS", "CS", "cs"),
+      pp("RST", "RST", "drive", false),
+      pp("DC", "A0 (DC)", "drive"),
+      pp("SDA", "SDA (MOSI)", "mosi"),
+      pp("SCK", "SCK", "sck"),
+      pp("LED", "LED", "opt", false, "Backlight, to 3.3 V"),
+    ],
+  ),
+  // Radios
+  peripheral(
+    "hc-05",
+    3.3,
+    [3.6, 6],
+    [
+      pp("STATE", "STATE", "opt", false),
+      pp("RXD", "RXD", "rx", true, "3.3 V logic: divide a 5 V TX down"),
+      pp("TXD", "TXD", "tx"),
+      pp("GND", "GND", "gnd"),
+      pp("VCC", "VCC", "vcc"),
+      pp("EN", "EN / KEY", "opt", false),
+    ],
+  ),
+  peripheral(
+    "wifi-module",
+    3.3,
+    [3, 3.6],
+    [
+      pp("VCC", "VCC", "vcc"),
+      pp("GND", "GND", "gnd"),
+      pp("TX", "TX", "tx"),
+      pp("RX", "RX", "rx"),
+      pp("EN", "CH_PD (EN)", "opt", false, "Hold high to run"),
+      pp("RST", "RST", "opt", false),
+      pp("GPIO0", "GPIO0", "opt", false),
+      pp("GPIO2", "GPIO2", "opt", false),
+    ],
+  ),
+  // nRF24L01+ signal pins are 5 V tolerant; only its supply must stay at 3.3 V.
+  peripheral(
+    "nrf24l01",
+    3.3,
+    [1.9, 3.6],
+    [
+      pp("GND", "GND", "gnd"),
+      pp("VCC", "VCC", "vcc"),
+      pp("CE", "CE", "drive"),
+      pp("CSN", "CSN", "cs"),
+      pp("SCK", "SCK", "sck"),
+      pp("MOSI", "MOSI", "mosi"),
+      pp("MISO", "MISO", "miso"),
+      pp("IRQ", "IRQ", "opt", false),
+    ],
+    true,
+  ),
+  peripheral(
+    "lora",
+    3.3,
+    [1.8, 3.7],
+    [
+      pp("VCC", "3.3V", "vcc"),
+      pp("GND", "GND", "gnd"),
+      pp("NSS", "NSS", "cs"),
+      pp("MOSI", "MOSI", "mosi"),
+      pp("MISO", "MISO", "miso"),
+      pp("SCK", "SCK", "sck"),
+      pp("RST", "RST", "opt", false),
+      pp("DIO0", "DIO0", "opt", false, "Packet interrupt"),
+      pp("DIO1", "DIO1", "opt", false),
+    ],
+  ),
+];

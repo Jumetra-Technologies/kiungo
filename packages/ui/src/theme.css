@@ -1,0 +1,1075 @@
+/*
+ * The Kiungo theme: colors for every theme, the Tailwind tokens built on
+ * them, and the shared animations, for the website and the desktop app. Import
+ * it after Tailwind:
+ *
+ *   @import "tailwindcss";
+ *   @import "@kiungo/ui/theme.css";
+ */
+
+/* Kiungo brand colours (the logo): navy stem, teal arms, amber pads and beads. */
+:root {
+  --kiungo-navy: #01224b;
+  --kiungo-teal: #059093;
+  --kiungo-amber: #f1ab32;
+  --kiungo-stem: var(--kiungo-navy);
+  --kiungo-cut: #ffffff;
+  --kiungo-word: var(--kiungo-navy);
+  --kiungo-teal-text: #077a7d;
+}
+/* On dark themes the navy stem reverses to near-white and the cuts take the dark ground. */
+[data-theme="dark"],
+[data-theme="dark-contrast"] {
+  --kiungo-stem: #e8eef6;
+  --kiungo-cut: #141414;
+  --kiungo-word: #f5f5f5;
+  --kiungo-teal-text: #2fc4c6;
+}
+
+/* Kiungo design system: soft chrome frame, stronger canvas. Brand colours from the Kiungo logo. */
+
+:root,
+[data-theme="light"] {
+  --background: #f6f8fb;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --canvas: #fbfcfe;
+  --header: #ffffff;
+  --header-foreground: #0f172a;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-muted: #64748b;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-border: #e2e8f0;
+  --primary: #077a7d;
+  --primary-foreground: #ffffff;
+  --success: #16a34a;
+  --success-foreground: #064e3b;
+  --warning: #d97706;
+  --warning-foreground: #78350f;
+  --danger: #dc2626;
+  --danger-foreground: #7f1d1d;
+  --border: #e2e8f0;
+  --muted: #64748b;
+  --muted-bg: #f1f5f9;
+  --accent: #e7f4f4;
+  --ring: #077a7d;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 3px 10px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --canvas-grid: rgba(148, 163, 184, 0.14);
+  --scrollbar: #cbd5e1;
+}
+
+[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --surface: #1a1a1a;
+  --canvas: #0a0a0a;
+  --header: #1c1c1c;
+  --header-foreground: #f5f5f5;
+  --sidebar: #1c1c1c;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-muted: #a3a3a3;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --primary: #a3a3a3;
+  --primary-foreground: #0a0a0a;
+  --success: #34d399;
+  --success-foreground: #ecfdf5;
+  --warning: #fbbf24;
+  --warning-foreground: #422006;
+  --danger: #f87171;
+  --danger-foreground: #fef2f2;
+  --border: #2a2a2a;
+  --muted: #a3a3a3;
+  --muted-bg: #1a1a1a;
+  --accent: #262626;
+  --ring: #a3a3a3;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --canvas-grid: rgba(255, 255, 255, 0.06);
+  --scrollbar: #3f3f3f;
+}
+
+[data-theme="light-contrast"] {
+  --background: #f5f5f5;
+  --foreground: #000000;
+  --surface: #ececec;
+  --canvas: #ffffff;
+  --header: #f5f5f5;
+  --header-foreground: #000000;
+  --sidebar: #f5f5f5;
+  --sidebar-foreground: #000000;
+  --sidebar-muted: #404040;
+  --sidebar-hover: rgba(0, 0, 0, 0.08);
+  --sidebar-border: rgba(0, 0, 0, 0.18);
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --success: #166534;
+  --success-foreground: #ffffff;
+  --warning: #854d0e;
+  --warning-foreground: #ffffff;
+  --danger: #991b1b;
+  --danger-foreground: #ffffff;
+  --border: #000000;
+  --muted: #171717;
+  --muted-bg: #e5e5e5;
+  --accent: #e5e5e5;
+  --ring: #000000;
+  --shadow-sm: 0 0 0 1px #000000;
+  --shadow-md: 0 0 0 2px #000000;
+  --canvas-grid: rgba(0, 0, 0, 0.18);
+  --scrollbar: #000000;
+}
+
+[data-theme="dark-contrast"] {
+  --background: #000000;
+  --foreground: #ffffff;
+  --surface: #111111;
+  --canvas: #000000;
+  --header: #141414;
+  --header-foreground: #ffffff;
+  --sidebar: #141414;
+  --sidebar-foreground: #ffffff;
+  --sidebar-muted: #d4d4d4;
+  --sidebar-hover: rgba(255, 255, 255, 0.1);
+  --sidebar-border: rgba(255, 255, 255, 0.22);
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --success: #4ade80;
+  --success-foreground: #000000;
+  --warning: #facc15;
+  --warning-foreground: #000000;
+  --danger: #f87171;
+  --danger-foreground: #000000;
+  --border: #ffffff;
+  --muted: #e5e5e5;
+  --muted-bg: #171717;
+  --accent: #262626;
+  --ring: #ffffff;
+  --shadow-sm: 0 0 0 1px #ffffff;
+  --shadow-md: 0 0 0 2px #ffffff;
+  --canvas-grid: rgba(255, 255, 255, 0.16);
+  --scrollbar: #ffffff;
+}
+
+/*
+ * Colour themes (v1.13.0). One deep, saturated colour for the sidebar with white
+ * text, clean white surfaces, and near-black text with a real muted grey, so the
+ * hierarchy reads as clearly as the default theme. (The earlier versions mixed the
+ * hue 40% into slate, which gave a hazy mid-tone sidebar with low-contrast text.)
+ */
+[data-theme="blue"] {
+  --background: #f4f7fc;
+  --foreground: #0f1d36;
+  --surface: #ffffff;
+  --canvas: #fafcff;
+  --header: #ffffff;
+  --header-foreground: #0f1d36;
+  --sidebar: #0f2557;
+  --sidebar-foreground: #ffffff;
+  --sidebar-muted: #b9c8ea;
+  --sidebar-hover: rgba(255, 255, 255, 0.09);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --success: #047857;
+  --success-foreground: #ecfdf5;
+  --warning: #b45309;
+  --warning-foreground: #fffbeb;
+  --danger: #dc2626;
+  --danger-foreground: #fef2f2;
+  --border: #dbe3f1;
+  --muted: #55637d;
+  --muted-bg: #edf2fb;
+  --accent: #e6eefd;
+  --ring: #2563eb;
+  --shadow-sm: 0 1px 2px rgba(15, 37, 87, 0.06), 0 3px 10px rgba(15, 37, 87, 0.04);
+  --shadow-md: 0 12px 32px rgba(15, 37, 87, 0.1);
+  --canvas-grid: rgba(37, 99, 235, 0.08);
+  --scrollbar: #a9bde6;
+}
+
+[data-theme="red"] {
+  --background: #fcf6f7;
+  --foreground: #2a1015;
+  --surface: #ffffff;
+  --canvas: #fffbfb;
+  --header: #ffffff;
+  --header-foreground: #2a1015;
+  --sidebar: #4c0f1b;
+  --sidebar-foreground: #ffffff;
+  --sidebar-muted: #efbdc7;
+  --sidebar-hover: rgba(255, 255, 255, 0.09);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --primary: #be123c;
+  --primary-foreground: #ffffff;
+  --success: #047857;
+  --success-foreground: #ecfdf5;
+  --warning: #b45309;
+  --warning-foreground: #fffbeb;
+  --danger: #b91c1c;
+  --danger-foreground: #fef2f2;
+  --border: #f1dde1;
+  --muted: #7b5a61;
+  --muted-bg: #f9eff1;
+  --accent: #fce8ec;
+  --ring: #be123c;
+  --shadow-sm: 0 1px 2px rgba(76, 15, 27, 0.06), 0 3px 10px rgba(76, 15, 27, 0.04);
+  --shadow-md: 0 12px 32px rgba(76, 15, 27, 0.1);
+  --canvas-grid: rgba(190, 18, 60, 0.07);
+  --scrollbar: #e4b1bd;
+}
+
+[data-theme="green"] {
+  --background: #f4f9f6;
+  --foreground: #0c2117;
+  --surface: #ffffff;
+  --canvas: #fafdfb;
+  --header: #ffffff;
+  --header-foreground: #0c2117;
+  --sidebar: #0b3b2a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-muted: #b2d8c4;
+  --sidebar-hover: rgba(255, 255, 255, 0.09);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --primary: #047857;
+  --primary-foreground: #ffffff;
+  --success: #15803d;
+  --success-foreground: #f0fdf4;
+  --warning: #b45309;
+  --warning-foreground: #fffbeb;
+  --danger: #dc2626;
+  --danger-foreground: #fef2f2;
+  --border: #d6e8de;
+  --muted: #50695c;
+  --muted-bg: #ecf5f0;
+  --accent: #e1f3e8;
+  --ring: #047857;
+  --shadow-sm: 0 1px 2px rgba(11, 59, 42, 0.06), 0 3px 10px rgba(11, 59, 42, 0.04);
+  --shadow-md: 0 12px 32px rgba(11, 59, 42, 0.1);
+  --canvas-grid: rgba(4, 120, 87, 0.08);
+  --scrollbar: #9fcfb6;
+}
+
+/* On the coloured sidebars the logo reverses: white stem and word, light teal arms. */
+[data-theme="blue"] [data-sidebar],
+[data-theme="red"] [data-sidebar],
+[data-theme="green"] [data-sidebar] {
+  --kiungo-stem: #ffffff;
+  --kiungo-cut: var(--sidebar);
+  --kiungo-word: #ffffff;
+  --kiungo-teal: #3cc8c4;
+  --kiungo-teal-text: #9fe9e5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-canvas: var(--canvas);
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-bg: var(--muted-bg);
+  --color-accent: var(--accent);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+  --radius-lg: var(--radius);
+  --radius-md: var(--radius-sm);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+code,
+.font-mono,
+pre {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+/*
+ * The default keyboard focus ring. It sits in the base layer so a component
+ * that draws its own focus style (a utility class) can replace it; anything
+ * that removes it with outline-none must draw its own (see
+ * __tests__/FocusStyles.test.ts).
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+.hhip-canvas-grid {
+  background-color: var(--canvas);
+  background-image:
+    linear-gradient(to right, var(--canvas-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--canvas-grid) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.react-flow__controls {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.react-flow__controls-button {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  fill: var(--foreground) !important;
+}
+
+.react-flow__minimap {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/*
+ * Slim, theme-coloured scrollbars everywhere (sidebar, panels, page):
+ * a 6px rounded thumb on a transparent track, with no arrow buttons.
+ *
+ * Chromium (Chrome, Edge) and Safari use the ::-webkit-scrollbar rules.
+ * The standard properties are applied only where those pseudo-elements are
+ * unsupported (Firefox), because in Chrome 121+ setting scrollbar-width
+ * switches off the ::-webkit-scrollbar styling and brings the arrows back.
+ */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Architecture Explorer: data pulse travelling along a board trace */
+@keyframes arch-signal {
+  to {
+    stroke-dashoffset: -26;
+  }
+}
+
+.arch-signal {
+  animation: arch-signal 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arch-signal {
+    animation: none;
+  }
+}
+
+/*
+ * Elastic scrollbars (lib/ui/elastic-scrollbars.ts), HHIP's standard for every
+ * scrolling area. Once the engine is running, each managed element hides its
+ * native bar and gets a drawn 6px bar with small arrows that squashes when
+ * scrolled past an end and springs back on release. Until then (or with
+ * data-native-scrollbar) the slim native bar above is used.
+ */
+.hhip-elastic-ready .hhip-elastic-managed {
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+}
+.hhip-elastic-ready .hhip-elastic-managed::-webkit-scrollbar {
+  display: none;
+}
+
+.hhip-elastic-track {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+.hhip-elastic-track[data-axis="x"] {
+  flex-direction: row;
+}
+.hhip-elastic-track[data-scrollable="false"] {
+  display: none;
+}
+.hhip-elastic-track > * {
+  pointer-events: auto;
+}
+
+.hhip-elastic-rail {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hhip-elastic-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--scrollbar);
+  will-change: transform;
+  touch-action: none;
+  transition: background-color 150ms ease;
+}
+.hhip-elastic-thumb:hover,
+.hhip-elastic-thumb[data-dragging] {
+  background: var(--muted);
+}
+/* Let go: spring back to rest, overshooting slightly before settling. */
+.hhip-elastic-thumb[data-releasing] {
+  transition:
+    transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 150ms ease;
+}
+
+.hhip-elastic-arrow {
+  flex: none;
+  width: 6px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: 3px 3px;
+  cursor: default;
+  --arrow: var(--scrollbar);
+}
+.hhip-elastic-track[data-axis="x"] .hhip-elastic-arrow {
+  width: 10px;
+  height: 6px;
+}
+.hhip-elastic-arrow:hover {
+  --arrow: var(--muted);
+}
+.hhip-elastic-arrow[data-direction="up"] {
+  background-image:
+    linear-gradient(to top left, var(--arrow) 50%, transparent 50%),
+    linear-gradient(to top right, var(--arrow) 50%, transparent 50%);
+  background-position:
+    0 4px,
+    3px 4px;
+}
+.hhip-elastic-arrow[data-direction="down"] {
+  background-image:
+    linear-gradient(to bottom left, var(--arrow) 50%, transparent 50%),
+    linear-gradient(to bottom right, var(--arrow) 50%, transparent 50%);
+  background-position:
+    0 3px,
+    3px 3px;
+}
+.hhip-elastic-arrow[data-direction="left"] {
+  background-image:
+    linear-gradient(to top left, var(--arrow) 50%, transparent 50%),
+    linear-gradient(to bottom left, var(--arrow) 50%, transparent 50%);
+  background-position:
+    4px 0,
+    4px 3px;
+}
+.hhip-elastic-arrow[data-direction="right"] {
+  background-image:
+    linear-gradient(to top right, var(--arrow) 50%, transparent 50%),
+    linear-gradient(to bottom right, var(--arrow) 50%, transparent 50%);
+  background-position:
+    3px 0,
+    3px 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hhip-elastic-thumb[data-releasing] {
+    transition: background-color 150ms ease;
+  }
+}
+
+/* Modal dialogs: the page dims in and the panel rises into place. */
+@keyframes hhip-dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes hhip-dialog-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+.hhip-dialog-backdrop {
+  animation: hhip-dialog-fade 160ms ease-out;
+}
+.hhip-dialog-panel {
+  animation: hhip-dialog-pop 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hhip-dialog-backdrop,
+  .hhip-dialog-panel {
+    animation: none;
+  }
+}
+
+/*
+ * "Continue with Google", to Google's sign-in branding: a neutral pill with
+ * the four-colour G. Not themed on purpose: it must look like Google's
+ * button on every palette.
+ */
+.kiungo-gbtn {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 1px solid #747775;
+  background: #ffffff;
+  color: #1f1f1f;
+  font-family: Roboto, var(--font-sans), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.0125em;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+  cursor: pointer;
+}
+.kiungo-gbtn:hover:not(:disabled) {
+  background: #f8f9fa;
+  box-shadow:
+    0 1px 2px rgb(60 64 67 / 0.3),
+    0 1px 3px 1px rgb(60 64 67 / 0.15);
+}
+.kiungo-gbtn:active:not(:disabled) {
+  background: #eef0f1;
+}
+.kiungo-gbtn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.kiungo-gbtn:disabled {
+  cursor: default;
+  border-color: rgb(31 31 31 / 0.12);
+  background: rgb(255 255 255 / 0.61);
+  color: rgb(31 31 31 / 0.38);
+}
+.kiungo-gbtn[aria-busy] {
+  cursor: progress;
+  color: #1f1f1f;
+  background: #ffffff;
+  border-color: #747775;
+}
+.kiungo-gbtn__icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+}
+.dark .kiungo-gbtn {
+  border-color: #8e918f;
+  background: #131314;
+  color: #e3e3e3;
+}
+.dark .kiungo-gbtn:hover:not(:disabled) {
+  background: #1f2021;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+.dark .kiungo-gbtn:active:not(:disabled) {
+  background: #2a2b2c;
+}
+.dark .kiungo-gbtn:disabled {
+  border-color: rgb(142 145 143 / 0.12);
+  background: rgb(19 19 20 / 0.38);
+  color: rgb(227 227 227 / 0.38);
+}
+.dark .kiungo-gbtn[aria-busy] {
+  border-color: #8e918f;
+  background: #131314;
+  color: #e3e3e3;
+}
+.kiungo-ghbtn {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px;
+  border: 1px solid #24292f;
+  border-radius: 9999px;
+  background: #24292f;
+  color: #ffffff;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+  cursor: pointer;
+}
+.kiungo-ghbtn:hover:not(:disabled) {
+  background: #32383f;
+  box-shadow: 0 2px 5px rgb(31 35 40 / 0.25);
+}
+.kiungo-ghbtn:active:not(:disabled) {
+  background: #1f2328;
+}
+.kiungo-ghbtn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.kiungo-ghbtn:disabled {
+  cursor: default;
+  border-color: #6e7781;
+  background: #6e7781;
+  color: #ffffffb3;
+}
+.kiungo-ghbtn[aria-busy] {
+  cursor: progress;
+}
+
+/*
+ * Component library views: moving current in the flow view, glowing LEDs in
+ * the top view. (Restored: the merge of PR #8 dropped this block.)
+ */
+@keyframes hhip-flow-dash {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+.hhip-flow-dash {
+  animation: hhip-flow-dash 0.9s linear infinite;
+}
+@keyframes hhip-plan-glow {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+.hhip-plan-glow {
+  animation: hhip-plan-glow 1.2s ease-in-out infinite;
+  filter: blur(0.6px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hhip-flow-dash {
+    animation: none;
+  }
+  .hhip-plan-glow {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* Menus and popovers. */
+@keyframes hhip-menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+.hhip-menu-pop {
+  animation: hhip-menu-pop 120ms ease-out;
+  transform-origin: top left;
+}
+
+/* Skeleton loading: a soft sheen that runs across placeholder blocks. */
+@keyframes hhip-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+.hhip-skeleton {
+  background-color: var(--muted-bg);
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--surface) 70%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: hhip-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Engineering Lab: wire and pin colours, shared by the canvas, inspector and dock. */
+.hhip-lab {
+  --lab-power: #ef4444;
+  --lab-ground: #64748b;
+  --lab-digital: #3b82f6;
+  --lab-analog: #10b981;
+  --lab-pwm: #f59e0b;
+  --lab-bus: #8b5cf6;
+  --lab-muted: #cbd5e1;
+  --lab-fault: #dc2626;
+}
+[data-theme="dark"] .hhip-lab,
+[data-theme="dark-contrast"] .hhip-lab {
+  --lab-muted: #525252;
+}
+/* Panning or zooming: draw the canvas as one moving layer (see LabCanvas, DSK-21). */
+.hhip-lab-canvas[data-moving] .react-flow__viewport {
+  will-change: transform;
+}
+
+.hhip-lab-canvas .react-flow__handle {
+  min-width: 0;
+  min-height: 0;
+}
+.hhip-lab-canvas .react-flow__edge-path {
+  transition:
+    stroke 160ms ease,
+    opacity 160ms ease,
+    stroke-width 160ms ease;
+}
+@keyframes hhip-fault-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.hhip-fault-pulse {
+  animation: hhip-fault-pulse 1s ease-in-out infinite;
+}
+@keyframes hhip-live-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.hhip-live-dash {
+  animation: hhip-live-dash 0.8s linear infinite;
+}
+@keyframes hhip-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.hhip-glow-breathe {
+  animation: hhip-glow-breathe 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hhip-menu-pop,
+  .hhip-skeleton,
+  .hhip-fault-pulse,
+  .hhip-live-dash,
+  .hhip-glow-breathe {
+    animation: none;
+  }
+}
+
+/* The board beside the version number in Settings turns slowly (System Diagnostics' way in). */
+@keyframes kiungo-board-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+/* The site footer: the brand's teal, deepening to navy (the logo's two colours). */
+.kiungo-footer {
+  --footer-ink: #ffffff;
+  --footer-soft: rgba(225, 250, 248, 0.78);
+  --footer-line: rgba(255, 255, 255, 0.14);
+  --kiungo-stem: #ffffff;
+  --kiungo-cut: #06666a;
+  --kiungo-word: #ffffff;
+  --kiungo-teal: #5fe0db;
+  --kiungo-teal-text: #b9f3ef;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(95, 224, 219, 0.18) 0%, transparent 55%),
+    linear-gradient(160deg, #077a7d 0%, #05636a 45%, #033d55 85%, #01224b 100%);
+  color: var(--footer-ink);
+}
+
+/* Bare boards on the lab canvas: the pin name appears beside a handle on hover (the silkscreen names them otherwise). */
+[data-bare] .react-flow__handle::after {
+  content: var(--pin-label);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, calc(-50% + var(--pin-label-y, -16px)));
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--foreground);
+  color: var(--background);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+[data-bare] .react-flow__handle:hover::after {
+  opacity: 1;
+}
+[data-bare] .react-flow__handle:hover {
+  z-index: 3;
+}
+
+/* Breadboard holes (components/lab/BreadboardNode.tsx): invisible over the drawn hole until hovered, aimed at, or wired. */
+.react-flow__handle.hhip-bb-hole {
+  width: 7px;
+  height: 7px;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 2px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  transition:
+    scale 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+.react-flow__handle.hhip-bb-hole:hover,
+.react-flow__handle.hhip-bb-hole.connectingto,
+.react-flow__handle.hhip-bb-hole.connectionindicator:hover {
+  scale: 1.7;
+  border-color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 35%, transparent) !important;
+}
+.react-flow__handle.hhip-bb-hole.valid {
+  border-color: var(--success) !important;
+  background: color-mix(in srgb, var(--success) 40%, transparent) !important;
+}
+.react-flow__handle.hhip-bb-hole[data-wired] {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+/* Every search box draws its own clear button; hide the browser's, so there is only one ×. */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+/* Touch screens: a fingertip needs a bigger target than a 7–11 px pin. The dot stays the same size;
+   an invisible margin round it takes the tap. Breadboard holes are 0.1" apart, so theirs is smaller. */
+@media (pointer: coarse) {
+  .react-flow__handle::before {
+    content: "";
+    position: absolute;
+    inset: -9px;
+    border-radius: 9999px;
+  }
+  .react-flow__handle.hhip-bb-hole::before {
+    inset: -3px;
+  }
+}
+
+/* The home page's app preview: a new screenshot settles in rather than snapping. */
+@keyframes hhip-preview-swap {
+  from {
+    opacity: 0;
+  }
+}
+.hhip-preview-swap {
+  animation: hhip-preview-swap 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hhip-preview-swap {
+    animation: none;
+  }
+}
+
+/*
+ * The download button while it downloads: a light gray track that fills
+ * from the left with the brand teal as the file arrives. The dark palettes'
+ * primary is a neutral gray, so they get a deep teal that keeps white text
+ * readable (4.9:1).
+ */
+.hhip-download-fill {
+  background: var(--primary);
+}
+.hhip-download-fill-text {
+  color: var(--primary-foreground);
+}
+[data-theme="dark"] .hhip-download-fill,
+[data-theme="dark-contrast"] .hhip-download-fill {
+  background: #0b7f7c;
+}
+[data-theme="dark"] .hhip-download-fill-text,
+[data-theme="dark-contrast"] .hhip-download-fill-text {
+  color: #ffffff;
+}
+
+/*
+ * The X in a dialog's corner (CloseButton). Gray in every palette: the box
+ * is the text color at low strength, so it reads as gray on white pages and
+ * as a lighter gray on dark ones. Hover: a light box. Pressed: a firmer box
+ * with an outline, held for a moment after the click so it is seen.
+ */
+.hhip-close-button {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.hhip-close-button:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+.hhip-close-button:active,
+.hhip-close-button[data-pressed="true"] {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+  border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
+  transform: scale(0.94);
+  /* The press lands at once; only hover fades. */
+  transition-duration: 40ms;
+}
+.hhip-close-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+/* On near-black, light gray needs more strength to read as a clear step. */
+[data-theme="dark"] .hhip-close-button:hover,
+[data-theme="dark-contrast"] .hhip-close-button:hover {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+[data-theme="dark"] .hhip-close-button:active,
+[data-theme="dark"] .hhip-close-button[data-pressed="true"],
+[data-theme="dark-contrast"] .hhip-close-button:active,
+[data-theme="dark-contrast"] .hhip-close-button[data-pressed="true"] {
+  background: color-mix(in srgb, var(--foreground) 22%, transparent);
+  border-color: color-mix(in srgb, var(--foreground) 36%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hhip-close-button,
+  .hhip-close-button:active,
+  .hhip-close-button[data-pressed="true"] {
+    transition: none;
+    transform: none;
+  }
+}
+
+/*
+ * Pop-up notices in the corner (the website's download notice, the desktop
+ * app's update card): Kiungo blue, white text, in every theme. Everything
+ * inside reads against the blue, so the usual muted and primary tokens are
+ * re-pointed here.
+ */
+.hhip-notice {
+  --notice-bg: var(--kiungo-navy);
+  --notice-fg: #ffffff;
+  --notice-muted: rgba(255, 255, 255, 0.78);
+  --notice-line: rgba(255, 255, 255, 0.16);
+  --notice-track: rgba(255, 255, 255, 0.18);
+  --notice-accent: var(--kiungo-teal);
+  color: var(--notice-fg);
+  background: var(--notice-bg);
+  border: 1px solid var(--notice-line);
+  box-shadow:
+    0 12px 32px rgba(1, 34, 75, 0.35),
+    0 2px 6px rgba(1, 34, 75, 0.25);
+}
+[data-theme="dark"] .hhip-notice,
+[data-theme="dark-contrast"] .hhip-notice {
+  --notice-bg: #0b2d5c;
+  --notice-line: rgba(255, 255, 255, 0.22);
+}
+
+/* It rises into the corner, and a bar with no size yet sweeps. */
+@keyframes hhip-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes hhip-notice-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+.hhip-notice-in {
+  animation: hhip-notice-in 180ms ease-out;
+}
+.hhip-notice-indeterminate {
+  animation: hhip-notice-sweep 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hhip-notice-in,
+  .hhip-notice-indeterminate {
+    animation: none;
+  }
+}

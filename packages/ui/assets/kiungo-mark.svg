@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g fill="#F1AB32">
+    <polygon points="13.5,17 13.5,26 5,21.5"/><circle cx="10.6" cy="21.5" r="1.1" fill="#fff"/>
+    <polygon points="3.5,28 14,34 3.5,40"/>
+    <polygon points="14,42 3.5,48 14,54"/>
+    <polygon points="3.5,56 14,62 3.5,68"/>
+    <polygon points="13.5,70 13.5,79 5,74.5"/><circle cx="10.6" cy="74.5" r="1.1" fill="#fff"/>
+  </g>
+  <rect x="17" y="5" width="24" height="90" rx="3.2" fill="#01224B"/>
+  <path d="M47 38.5 H30.5 A11.5 11.5 0 0 0 30.5 61.5 H47" fill="none" stroke="#fff" stroke-width="3"/>
+  <g fill="#059093">
+    <polygon points="63,5 96,5 61,39.5 41,39.5"/>
+    <polygon points="41,60.5 61,60.5 96,95 63,95"/>
+    <rect x="40" y="38" width="54" height="24" rx="12"/>
+  </g>
+  <rect x="36.5" y="44.2" width="49" height="11.6" rx="5.8" fill="#059093" stroke="#fff" stroke-width="2.6"/>
+  <g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M49 44.2 H55 L72.5 19"/>
+    <path d="M49 55.8 H55 L72.5 81"/>
+  </g>
+  <circle cx="75" cy="15" r="4.9" fill="#fff"/><circle cx="75" cy="15" r="3.3" fill="#F1AB32"/>
+  <circle cx="75" cy="85" r="4.9" fill="#fff"/><circle cx="75" cy="85" r="3.3" fill="#F1AB32"/>
+</svg>

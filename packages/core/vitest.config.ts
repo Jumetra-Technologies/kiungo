@@ -5,9 +5,11 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts", "test/**/*.test.ts"],
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts"],
+      // The QC gate's thresholds (lines / functions / branches / statements).
+      thresholds: { lines: 90, functions: 90, branches: 85, statements: 90 },
     },
   },
 });

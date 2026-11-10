@@ -29,14 +29,17 @@ export interface UploadProblem {
 
 const has = (out: string, re: RegExp) => re.test(out);
 
-export function uploadProblem(
-  output: string,
+/** One kind of upload failure: when the output shows it, the problem to report. */
+type Matcher = (
+  out: string,
   board: HardwareBoardId,
   platform: HostPlatform,
-): UploadProblem {
-  const out = output;
+) => UploadProblem | null;
 
-  if (has(out, /Permission denied|\[Errno 13\]/i) && platform !== "win32") {
+/** In order: the first that matches is the problem. */
+const MATCHERS: Matcher[] = [
+  (out, _board, platform) => {
+    if (!(has(out, /Permission denied|\[Errno 13\]/i) && platform !== "win32")) return null;
     return {
       id: "permission",
       title: "This computer won't let Kiungo use the USB port",
@@ -52,14 +55,15 @@ export function uploadProblem(
               "If it still fails, restart the computer.",
             ],
     };
-  }
-
-  if (
-    has(
-      out,
-      /Access is denied|Device or resource busy|port is busy|Resource busy|could not open port.*busy/i,
+  },
+  (out) => {
+    if (
+      !has(
+        out,
+        /Access is denied|Device or resource busy|port is busy|Resource busy|could not open port.*busy/i,
+      )
     )
-  ) {
+      return null;
     return {
       id: "port-busy",
       title: "Another program is using the board's port",
@@ -69,14 +73,15 @@ export function uploadProblem(
         "Upload again.",
       ],
     };
-  }
-
-  if (
-    has(
-      out,
-      /No such file or directory|cannot find the file specified|port.*(not found|doesn't exist)|could not find port|Port monitor error|no upload port/i,
+  },
+  (out) => {
+    if (
+      !has(
+        out,
+        /No such file or directory|cannot find the file specified|port.*(not found|doesn't exist)|could not find port|Port monitor error|no upload port/i,
+      )
     )
-  ) {
+      return null;
     return {
       id: "port-missing",
       title: "The board isn't on that port any more",
@@ -86,11 +91,12 @@ export function uploadProblem(
         "Upload again.",
       ],
     };
-  }
-
-  if (
-    has(out, /Wrong boot mode|download mode|Failed to connect to ESP32|No serial data received/i)
-  ) {
+  },
+  (out) => {
+    if (
+      !has(out, /Wrong boot mode|download mode|Failed to connect to ESP32|No serial data received/i)
+    )
+      return null;
     return {
       id: "esp-no-boot-mode",
       title: "The ESP32 didn't start listening for the upload",
@@ -100,23 +106,24 @@ export function uploadProblem(
         "If it still fails, try another USB cable: some only carry power.",
       ],
     };
-  }
-
-  if (has(out, /This chip is (ESP32-\w+)|Wrong --chip argument/i)) {
+  },
+  (out) => {
+    if (!has(out, /This chip is (ESP32-\w+)|Wrong --chip argument/i)) return null;
     const chip = /This chip is (ESP32-\w+)/.exec(out)?.[1] ?? "a different ESP32";
     return {
       id: "esp-wrong-chip",
       title: `This board is ${chip}, not the ESP32 the project is for`,
       steps: [`Kiungo builds for the original ESP32. ${chip} boards arrive in a later update.`],
     };
-  }
-
-  if (
-    has(
-      out,
-      /not in sync|programmer is not responding|stk500v2_ReceiveMessage\(\): timeout|getsync\(\)|timeout communicating with programmer/i,
+  },
+  (out, board) => {
+    if (
+      !has(
+        out,
+        /not in sync|programmer is not responding|stk500v2_ReceiveMessage\(\): timeout|getsync\(\)|timeout communicating with programmer/i,
+      )
     )
-  ) {
+      return null;
     const nano = board === "nano";
     return {
       id: "no-sync",
@@ -136,9 +143,9 @@ export function uploadProblem(
           ],
       ...(nano ? { retryWith: "nano-old" as const } : {}),
     };
-  }
-
-  if (has(out, /verification error|content mismatch|verify failed/i)) {
+  },
+  (out) => {
+    if (!has(out, /verification error|content mismatch|verify failed/i)) return null;
     return {
       id: "verify-failed",
       title: "The program didn't arrive whole",
@@ -147,9 +154,9 @@ export function uploadProblem(
         "Upload again.",
       ],
     };
-  }
-
-  if (has(out, /Sketch too big|text section exceeds available space/i)) {
+  },
+  (out) => {
+    if (!has(out, /Sketch too big|text section exceeds available space/i)) return null;
     return {
       id: "too-big",
       title: "The program is too big for this board",
@@ -157,8 +164,18 @@ export function uploadProblem(
         "Build to see the memory meters, then make the program smaller or choose a board with more memory.",
       ],
     };
-  }
+  },
+];
 
+export function uploadProblem(
+  output: string,
+  board: HardwareBoardId,
+  platform: HostPlatform,
+): UploadProblem {
+  for (const match of MATCHERS) {
+    const problem = match(output, board, platform);
+    if (problem) return problem;
+  }
   return {
     id: "unknown",
     title: "The upload didn't work",

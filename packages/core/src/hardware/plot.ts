@@ -11,10 +11,8 @@ export interface PlotLine {
 
 const NUMBER = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/;
 
-export function parsePlotLine(line: string): PlotLine | null {
-  const text = line.trim();
-  if (!text) return null;
-  const fields = text.split(/[\s,]+/).filter(Boolean);
+/** The numbers in a line's fields, named or numbered; null when text comes before any number. */
+function fieldValues(fields: string[]): PlotLine["values"] | null {
   const values: PlotLine["values"] = [];
   let unnamed = 0;
   for (const field of fields) {
@@ -31,9 +29,18 @@ export function parsePlotLine(line: string): PlotLine | null {
     unnamed += name ? 0 : 1;
     values.push({ name: name ?? String(unnamed), value: Number(raw) });
   }
+  return values;
+}
+
+export function parsePlotLine(line: string): PlotLine | null {
+  const text = line.trim();
+  if (!text) return null;
+  const values = fieldValues(text.split(/[\s,]+/).filter(Boolean));
+  if (!values) return null;
   // "Distance: 12 cm" names the value by the label before it.
   const labelled = /^([A-Za-z_][\w ]*?):\s+([-+]?\d+\.?\d*)\b/.exec(text);
-  if (labelled && values.length === 1 && values[0].name === "1") values[0].name = labelled[1];
+  const [only] = values;
+  if (labelled && values.length === 1 && only?.name === "1") only.name = labelled[1] ?? "";
   return values.length ? { values } : null;
 }
 

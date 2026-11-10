@@ -7,6 +7,7 @@
 import { breadboardSpec, type BreadboardSpec, type RailId } from "../parts/models/breadboard";
 import { analyze, type Analysis } from "./circuit";
 import { nodeFootprint } from "./layout";
+import { boardPinFor, pinPicker, type PinPicker } from "./autowire-pins";
 import { getPinout, type LabPin, type PinFn, type Pinout } from "./pinout";
 import type { LabNode, LabWire, PinRef } from "./types";
 
@@ -43,13 +44,15 @@ function pickBoard(nodes: LabNode[], wires: LabWire[], prefer?: string): LabNode
     if (chosen) return chosen;
   }
   // The board with most free signal pins.
-  return [...boards].sort((a, b) => {
-    const free = (n: LabNode) =>
-      getPinout(n.partId).pins.filter(
-        (p) => !p.supplies && !p.fns?.includes("ground") && !usedPins(n.id, wires).has(p.id),
-      ).length;
-    return free(b) - free(a);
-  })[0];
+  return (
+    [...boards].sort((a, b) => {
+      const free = (n: LabNode) =>
+        getPinout(n.partId).pins.filter(
+          (p) => !p.supplies && !p.fns?.includes("ground") && !usedPins(n.id, wires).has(p.id),
+        ).length;
+      return free(b) - free(a);
+    })[0] ?? null
+  );
 }
 
 /** Wires already in a breadboard hole. */
@@ -102,9 +105,11 @@ function planBreadboard(
       skipped.push(`${spec.rails[rail]!.label} rail`);
       continue;
     }
+    const [first] = holes;
+    if (!first) continue;
     planned.push({
       from: { node: board.id, pin: pin.id },
-      to: { node: breadboard.id, pin: holes[0] },
+      to: { node: breadboard.id, pin: first },
     });
   }
   return { board, wires: planned, skipped };
@@ -155,15 +160,23 @@ function planResistor(
  * `volts` on a + rail, or this board's ground on a − rail. Null when no
  * breadboard has one, and the pin then goes to the board directly.
  */
-function railHole(
-  want: { kind: "power"; volts: number } | { kind: "ground" },
-  board: LabNode,
-  part: LabNode,
-  nodes: LabNode[],
-  wires: LabWire[],
-  analysis: Analysis,
-  taken: Set<string>,
-): PinRef | null {
+function railHole({
+  want,
+  board,
+  part,
+  nodes,
+  wires,
+  analysis,
+  taken,
+}: {
+  want: { kind: "power"; volts: number } | { kind: "ground" };
+  board: LabNode;
+  part: LabNode;
+  nodes: LabNode[];
+  wires: LabWire[];
+  analysis: Analysis;
+  taken: Set<string>;
+}): PinRef | null {
   const boardGround = getPinout(board.partId).pins.find((p) => p.fns?.includes("ground"));
   const groundNet = boardGround
     ? analysis.netOfPin.get(`${board.id}:${boardGround.id}`)
@@ -198,6 +211,45 @@ function railHole(
   return null;
 }
 
+/** The part's pins to wire. Of "any of" groups (soil A0/D0, RGB, motor IN/EN) the useful ones. */
+function wantedPins(part: LabNode, pinout: Pinout): LabPin[] {
+  const signalOrder = pinout.pins.filter((p) => p.role && !["opt", "load"].includes(p.role));
+  return signalOrder.filter((p) => {
+    if (p.required) return true;
+    if (part.partId === "soil-moisture" || part.partId === "mq2") return p.id === "A0";
+    return part.partId === "rgb-led" || part.partId === "dc-motor";
+  });
+}
+
+/** The wire for one of the part's pins: from a breadboard rail for supply and ground when one carries it, else from the board. */
+function wirePin(
+  picker: PinPicker,
+  pin: LabPin,
+  ctx: { nodes: LabNode[]; analysis: Analysis | null; takenHoles: Set<string>; taken: Set<string> },
+): PlannedWire | null {
+  const { board, part, bp, wires } = picker;
+  const target = boardPinFor(picker, pin);
+  if (!target) return null;
+  if (ctx.analysis && (pin.role === "vcc" || pin.role === "gnd")) {
+    const hole = railHole({
+      want:
+        pin.role === "vcc"
+          ? { kind: "power", volts: target.supplies ?? bp.logic }
+          : { kind: "ground" },
+      board,
+      part,
+      nodes: ctx.nodes,
+      wires,
+      analysis: ctx.analysis,
+      taken: ctx.takenHoles,
+    });
+    if (hole) return { from: hole, to: { node: part.id, pin: pin.id } };
+  }
+  const plain = !target.supplies && !target.fns?.includes("ground");
+  if (plain && !SHARED_BUS.some((f) => target.fns?.includes(f))) ctx.taken.add(target.id);
+  return { from: { node: board.id, pin: target.id }, to: { node: part.id, pin: pin.id } };
+}
+
 export function planAutoWire(
   part: LabNode,
   nodes: LabNode[],
@@ -214,202 +266,20 @@ export function planAutoWire(
     preferBoard,
   );
   if (!board) return { board: null, wires: [], skipped: [] };
-  const bp: Pinout = getPinout(board.partId);
   const used = usedPins(board.id, wires);
   const taken = new Set<string>();
+  const picker = pinPicker(part, board, wires, { used, taken });
   const planned: PlannedWire[] = [];
   const skipped: string[] = [];
-
-  const facing = part.x >= board.x ? "right" : "left";
-  const plain = (p: LabPin) => !p.supplies && !p.fns?.includes("ground");
-  const free = (p: LabPin) => plain(p) && !used.has(p.id) && !taken.has(p.id);
-  const hasBus = (p: LabPin) =>
-    (p.fns ?? []).some((f) => ["sda", "scl", "tx", "rx", "mosi", "miso", "sck", "cs"].includes(f));
-  // Pins on the side facing the part first, so wires don't wrap round the board.
-  const choose = (cands: LabPin[]) =>
-    [...cands].sort((a, b) => Number(b.side === facing) - Number(a.side === facing))[0];
-
-  const supplyPin = (): LabPin | undefined => {
-    const [min, max] = pinout.supply ?? [3, 5.5];
-    // Rails on the side facing the part first, so wires don't wrap round the board.
-    const rails = bp.pins
-      .filter((p) => p.supplies)
-      .sort((a, b) => Number(b.side === facing) - Number(a.side === facing));
-    const fits = rails.filter((p) => p.supplies! >= min - 0.2 && p.supplies! <= max + 0.25);
-    // A motor's supply goes on VIN: on the bench that's the barrel jack's battery, not the board's regulator or USB.
-    if (part.partId === "dc-motor") {
-      const vin = fits.find((p) => p.id === "VIN");
-      if (vin) return vin;
-    }
-    const preferV = fits.some((p) => p.supplies === bp.logic) ? bp.logic : undefined;
-    return (
-      (preferV ? fits.find((p) => p.supplies === preferV && p.id !== "VIN") : undefined) ??
-      fits.find((p) => p.id !== "VIN") ??
-      fits[0] ??
-      rails.find((p) => p.supplies === Math.min(...rails.map((r) => r.supplies!)))
-    );
-  };
-  const groundPin = (): LabPin | undefined => {
-    const grounds = bp.pins.filter((p) => p.fns?.includes("ground"));
-    const count = (id: string) =>
-      wires.filter(
-        (w) =>
-          (w.from.node === board.id && w.from.pin === id) ||
-          (w.to.node === board.id && w.to.pin === id),
-      ).length;
-    // Prefer the ground on the side facing the part, then the least used.
-    return [...grounds].sort(
-      (a, b) => Number(b.side === facing) - Number(a.side === facing) || count(a.id) - count(b.id),
-    )[0];
-  };
 
   // With a breadboard fed by this board, supply and ground come from its rails, as on the bench.
   const analysis = nodes.some((n) => getPinout(n.partId).strips) ? analyze(nodes, wires) : null;
   const takenHoles = new Set<string>();
 
-  const signalOrder = pinout.pins.filter((p) => p.role && !["opt", "load"].includes(p.role));
-  // Of "any of" groups (soil A0/D0, RGB, motor IN/EN) wire the useful ones.
-  const wanted = signalOrder.filter((p) => {
-    if (p.required) return true;
-    if (part.partId === "soil-moisture" || part.partId === "mq2") return p.id === "A0";
-    if (part.partId === "rgb-led" || part.partId === "dc-motor") return true;
-    return false;
-  });
-
-  for (const pin of wanted) {
-    let target: LabPin | undefined;
-    switch (pin.role) {
-      case "vcc":
-        target = supplyPin();
-        break;
-      case "gnd":
-        target = groundPin();
-        break;
-      case "drive":
-        target =
-          (part.partId === "led"
-            ? bp.pins.find((p) => p.fns?.includes("led") && free(p) && !p.inputOnly)
-            : undefined) ??
-          choose(
-            bp.pins.filter(
-              (p) =>
-                free(p) &&
-                !p.inputOnly &&
-                p.fns?.includes("digital") &&
-                !hasBus(p) &&
-                !p.fns?.includes("analog"),
-            ),
-          ) ??
-          choose(
-            bp.pins.filter(
-              (p) => free(p) && !p.inputOnly && p.fns?.includes("digital") && !hasBus(p),
-            ),
-          ) ??
-          choose(bp.pins.filter((p) => free(p) && !p.inputOnly && p.fns?.includes("digital")));
-        break;
-      case "pwm":
-        target =
-          choose(
-            bp.pins.filter((p) => free(p) && !p.inputOnly && p.fns?.includes("pwm") && !hasBus(p)),
-          ) ??
-          choose(bp.pins.filter((p) => free(p) && !p.inputOnly && p.fns?.includes("pwm"))) ??
-          choose(bp.pins.filter((p) => free(p) && !p.inputOnly && p.fns?.includes("digital")));
-        break;
-      case "out-analog":
-        target =
-          choose(bp.pins.filter((p) => free(p) && p.fns?.includes("analog") && !hasBus(p))) ??
-          choose(bp.pins.filter((p) => free(p) && p.fns?.includes("analog"))) ??
-          // No analog pins (Raspberry Pi): land on a GPIO; the analysis explains the ADC it needs.
-          choose(bp.pins.filter((p) => free(p) && p.fns?.includes("digital") && !hasBus(p)));
-        break;
-      case "out-digital":
-      case "io": {
-        // Input-only pins suit a part's output but not two-way data; try them last either way.
-        const ok = (p: LabPin) =>
-          free(p) && p.fns?.includes("digital") && (pin.role === "out-digital" || !p.inputOnly);
-        const byInputOnly = (list: LabPin[]) =>
-          [...list].sort((a, b) => Number(!!a.inputOnly) - Number(!!b.inputOnly));
-        target =
-          choose(
-            byInputOnly(
-              bp.pins.filter(
-                (p) => ok(p) && !hasBus(p) && !p.fns?.includes("analog") && !p.fns?.includes("led"),
-              ),
-            ),
-          ) ??
-          choose(
-            byInputOnly(bp.pins.filter((p) => ok(p) && !hasBus(p) && !p.fns?.includes("led"))),
-          ) ??
-          choose(byInputOnly(bp.pins.filter((p) => ok(p) && !hasBus(p)))) ??
-          choose(byInputOnly(bp.pins.filter((p) => ok(p))));
-        break;
-      }
-      case "sda":
-      case "scl":
-      case "mosi":
-      case "miso":
-      case "sck":
-        target = bp.pins.find((p) => p.fns?.includes(pin.role as PinFn));
-        break;
-      case "tx": {
-        const rxs = bp.pins.filter((p) => p.fns?.includes("rx") && free(p));
-        target =
-          rxs.find((p) => !/^(D0|RX|0)$/.test(p.id)) ??
-          rxs[0] ??
-          choose(
-            bp.pins.filter(
-              (p) => free(p) && p.fns?.includes("digital") && !hasBus(p) && !p.inputOnly,
-            ),
-          );
-        break;
-      }
-      case "rx": {
-        const txs = bp.pins.filter((p) => p.fns?.includes("tx") && free(p));
-        target =
-          txs.find((p) => !/^(D1|TX|1)$/.test(p.id)) ??
-          txs[0] ??
-          choose(
-            bp.pins.filter(
-              (p) => free(p) && p.fns?.includes("digital") && !hasBus(p) && !p.inputOnly,
-            ),
-          );
-        break;
-      }
-      case "cs":
-        target =
-          bp.pins.find((p) => p.fns?.includes("cs") && free(p)) ??
-          choose(
-            bp.pins.filter(
-              (p) => free(p) && !p.inputOnly && p.fns?.includes("digital") && !hasBus(p),
-            ),
-          );
-        break;
-      default:
-        break;
-    }
-    if (!target) {
-      skipped.push(pin.label);
-      continue;
-    }
-    if (analysis && (pin.role === "vcc" || pin.role === "gnd")) {
-      const hole = railHole(
-        pin.role === "vcc"
-          ? { kind: "power", volts: target.supplies ?? bp.logic }
-          : { kind: "ground" },
-        board,
-        part,
-        nodes,
-        wires,
-        analysis,
-        takenHoles,
-      );
-      if (hole) {
-        planned.push({ from: hole, to: { node: part.id, pin: pin.id } });
-        continue;
-      }
-    }
-    if (plain(target) && !SHARED_BUS.some((f) => target!.fns?.includes(f))) taken.add(target.id);
-    planned.push({ from: { node: board.id, pin: target.id }, to: { node: part.id, pin: pin.id } });
+  for (const pin of wantedPins(part, pinout)) {
+    const wire = wirePin(picker, pin, { nodes, analysis, takenHoles, taken });
+    if (wire) planned.push(wire);
+    else skipped.push(pin.label);
   }
   return { board, wires: planned, skipped };
 }
@@ -436,6 +306,7 @@ export function placeNode(
   if (!nodes.length) return { x: 80, y: 80 };
   const isBoard = getPinout(partId).controller;
   const origin = anchor ?? nodes[0];
+  if (!origin) return { x: 80, y: 80 };
   const ob = nodeBox(origin.partId);
   const startX = isBoard ? origin.x : origin.x + ob.w + 120;
   const startY = origin.y;

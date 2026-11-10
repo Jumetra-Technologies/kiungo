@@ -27,14 +27,21 @@ export interface MotorCommand {
   duty: number;
 }
 
-function distanceToSegment(
-  px: number,
-  py: number,
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
-): number {
+function distanceToSegment({
+  px,
+  py,
+  ax,
+  ay,
+  bx,
+  by,
+}: {
+  px: number;
+  py: number;
+  ax: number;
+  ay: number;
+  bx: number;
+  by: number;
+}): number {
   const dx = bx - ax;
   const dy = by - ay;
   const len = dx * dx + dy * dy;
@@ -51,7 +58,12 @@ export function onLine(spec: WorldSpec, x: number, y: number): boolean {
   for (let i = 0; i < n; i++) {
     const a = pts[i];
     const b = pts[(i + 1) % pts.length];
-    if (distanceToSegment(x, y, a[0], a[1], b[0], b[1]) <= line.width / 2) return true;
+    if (!a || !b) continue;
+    if (
+      distanceToSegment({ px: x, py: y, ax: a[0], ay: a[1], bx: b[0], by: b[1] }) <=
+      line.width / 2
+    )
+      return true;
   }
   return false;
 }

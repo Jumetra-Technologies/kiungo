@@ -64,6 +64,147 @@ const fmt = (n: number, digits = 1) => n.toFixed(digits);
 const square = (t: number, period: number, duty = 0.5, phase = 0) =>
   (((t + phase) % period) + period) % period < period * duty ? 1 : 0;
 
+/** What reading one sensor needs: the time, the board's settings and the person's values. */
+interface SensorRead {
+  t: number;
+  held: boolean;
+  /** The person's value for `key` when they set the part, otherwise `fallback`. */
+  get: (key: string, fallback: number) => number;
+  inputs: Inputs;
+  node: LabNode;
+  settings: BoardSettings;
+  sample: (
+    values: Record<string, number>,
+    readings: Reading[],
+    extra: { level: number; on: boolean; badge?: string },
+  ) => SensorSample;
+}
+
+function dht({ t, held, get, sample }: SensorRead): SensorSample {
+  const temperatureC = held ? get("temperatureC", 24) : 22 + 3 * Math.sin(t / 8);
+  const humidity = held ? get("humidity", 55) : 55 + 8 * Math.cos(t / 12);
+  return sample(
+    { temperatureC, humidity },
+    [
+      { label: "Temperature", value: `${fmt(temperatureC)} °C` },
+      { label: "Humidity", value: `${fmt(humidity, 0)} %` },
+    ],
+    { level: 0.5, on: true, badge: `${fmt(temperatureC)} °C` },
+  );
+}
+
+function ds18b20({ t, held, get, sample }: SensorRead): SensorSample {
+  const temperatureC = held ? get("temperatureC", 24.5) : 24.5 + 1.5 * Math.sin(t / 10);
+  return sample({ temperatureC }, [{ label: "Temperature", value: `${fmt(temperatureC, 2)} °C` }], {
+    level: 0.5,
+    on: true,
+    badge: `${fmt(temperatureC)} °C`,
+  });
+}
+
+function hcSr04({ t, held, get, settings, sample }: SensorRead): SensorSample {
+  const distanceCm = held ? get("distanceCm", 30) : 30 + 20 * Math.abs(Math.sin(t / 5));
+  const warn = distanceCm < settings.warnCm;
+  return sample(
+    { distanceCm },
+    [
+      { label: "Distance", value: `${fmt(distanceCm)} cm` },
+      { label: "Obstacle", value: warn ? `Closer than ${settings.warnCm} cm` : "Clear" },
+    ],
+    { level: square(t, 0.1, 0.3), on: true, badge: `${fmt(distanceCm, 0)} cm` },
+  );
+}
+
+function pir({ t, held, inputs, node, sample }: SensorRead): SensorSample {
+  const motion = held ? inputOf(inputs, node.id, "motion", false) : square(t, 8, 0.375) === 1;
+  return sample(
+    { motion: motion ? 1 : 0 },
+    [{ label: "Motion", value: motion ? "Detected" : "None" }],
+    { level: motion ? 1 : 0, on: motion, badge: motion ? "Motion" : "Clear" },
+  );
+}
+
+function ldr({ t, held, get, settings, sample }: SensorRead): SensorSample {
+  const light = held ? get("light", 60) : 50 + 40 * Math.sin(t / 4);
+  return sample(
+    { light },
+    [
+      { label: "Light", value: `${fmt(light, 0)} %` },
+      { label: "Level", value: light < settings.darkPct ? "Dark" : "Lit" },
+    ],
+    { level: light / 100, on: true, badge: `${fmt(light, 0)} %` },
+  );
+}
+
+function soilMoisture({ t, held, get, settings, sample }: SensorRead): SensorSample {
+  const moisture = held ? get("moisture", 45) : 60 - ((t * 0.8) % 40);
+  return sample(
+    { moisture },
+    [
+      { label: "Moisture", value: `${fmt(moisture, 0)} %` },
+      { label: "Threshold", value: moisture < settings.dryPct ? "Dry" : "Wet enough" },
+    ],
+    { level: moisture / 100, on: true, badge: `${fmt(moisture, 0)} %` },
+  );
+}
+
+function mq2({ t, held, get, settings, sample }: SensorRead): SensorSample {
+  const gasPpm = held ? get("gasPpm", 300) : 300 + 250 * Math.max(0, Math.sin(t / 6)) ** 3;
+  return sample(
+    { gasPpm },
+    [
+      { label: "Gas", value: `${fmt(gasPpm, 0)} ppm` },
+      { label: "Alarm", value: gasPpm > settings.gasPpm ? "Over threshold" : "Normal" },
+    ],
+    { level: Math.min(1, gasPpm / 600), on: true, badge: `${fmt(gasPpm, 0)} ppm` },
+  );
+}
+
+function mpu6050({ t, held, get, sample }: SensorRead): SensorSample {
+  const pitch = held ? get("pitch", 0) : 25 * Math.sin(t / 2);
+  const roll = held ? get("roll", 0) : 15 * Math.cos(t / 3);
+  return sample(
+    { pitch, roll },
+    [
+      { label: "Pitch", value: `${fmt(pitch)}°` },
+      { label: "Roll", value: `${fmt(roll)}°` },
+      { label: "Accel Z", value: `${fmt(Math.cos((pitch * Math.PI) / 180), 2)} g` },
+    ],
+    { level: 0.5, on: true, badge: `${fmt(pitch, 0)}° tilt` },
+  );
+}
+
+function bmp280({ t, held, get, sample }: SensorRead): SensorSample {
+  const pressureHpa = held ? get("pressureHpa", 1013.2) : 1013.2 + 1.5 * Math.sin(t / 20);
+  const temperatureC = held ? get("temperatureC", 23.1) : 23.1 + 0.4 * Math.sin(t / 9);
+  return sample(
+    { pressureHpa, temperatureC },
+    [
+      { label: "Pressure", value: `${fmt(pressureHpa)} hPa` },
+      { label: "Temperature", value: `${fmt(temperatureC)} °C` },
+      {
+        label: "Altitude",
+        value: `${fmt(44330 * (1 - (pressureHpa / 1013.25) ** 0.1903), 1)} m`,
+      },
+    ],
+    { level: 0.5, on: true, badge: `${fmt(pressureHpa, 0)} hPa` },
+  );
+}
+
+const SENSORS = new Map<string, (s: SensorRead) => SensorSample>([
+  ["dht11", dht],
+  ["dht22", dht],
+  ["am2302", dht],
+  ["ds18b20", ds18b20],
+  ["hc-sr04", hcSr04],
+  ["pir", pir],
+  ["ldr", ldr],
+  ["soil-moisture", soilMoisture],
+  ["mq2", mq2],
+  ["mpu6050", mpu6050],
+  ["bmp280", bmp280],
+]);
+
 /**
  * A sensor's reading at time t: the value the person set, or the lab's
  * simulated sweep. Alarm-type lines use the board's setting.
@@ -75,122 +216,17 @@ export function sampleSensor(
   settings: BoardSettings,
 ): SensorSample {
   const held = isSet(inputs, node.id);
-  const get = (key: string, fallback: number) =>
-    held ? inputOf(inputs, node.id, key, fallback) : fallback;
-  const sample = (
-    values: Record<string, number>,
-    readings: Reading[],
-    extra: { level: number; on: boolean; badge?: string },
-  ): SensorSample => ({ node, readings, values, held, ...extra });
-
-  switch (node.partId) {
-    case "dht11":
-    case "dht22":
-    case "am2302": {
-      const temperatureC = held ? get("temperatureC", 24) : 22 + 3 * Math.sin(t / 8);
-      const humidity = held ? get("humidity", 55) : 55 + 8 * Math.cos(t / 12);
-      return sample(
-        { temperatureC, humidity },
-        [
-          { label: "Temperature", value: `${fmt(temperatureC)} °C` },
-          { label: "Humidity", value: `${fmt(humidity, 0)} %` },
-        ],
-        { level: 0.5, on: true, badge: `${fmt(temperatureC)} °C` },
-      );
-    }
-    case "ds18b20": {
-      const temperatureC = held ? get("temperatureC", 24.5) : 24.5 + 1.5 * Math.sin(t / 10);
-      return sample(
-        { temperatureC },
-        [{ label: "Temperature", value: `${fmt(temperatureC, 2)} °C` }],
-        { level: 0.5, on: true, badge: `${fmt(temperatureC)} °C` },
-      );
-    }
-    case "hc-sr04": {
-      const distanceCm = held ? get("distanceCm", 30) : 30 + 20 * Math.abs(Math.sin(t / 5));
-      const warn = distanceCm < settings.warnCm;
-      return sample(
-        { distanceCm },
-        [
-          { label: "Distance", value: `${fmt(distanceCm)} cm` },
-          { label: "Obstacle", value: warn ? `Closer than ${settings.warnCm} cm` : "Clear" },
-        ],
-        { level: square(t, 0.1, 0.3), on: true, badge: `${fmt(distanceCm, 0)} cm` },
-      );
-    }
-    case "pir": {
-      const motion = held ? inputOf(inputs, node.id, "motion", false) : square(t, 8, 0.375) === 1;
-      return sample(
-        { motion: motion ? 1 : 0 },
-        [{ label: "Motion", value: motion ? "Detected" : "None" }],
-        { level: motion ? 1 : 0, on: motion, badge: motion ? "Motion" : "Clear" },
-      );
-    }
-    case "ldr": {
-      const light = held ? get("light", 60) : 50 + 40 * Math.sin(t / 4);
-      return sample(
-        { light },
-        [
-          { label: "Light", value: `${fmt(light, 0)} %` },
-          { label: "Level", value: light < settings.darkPct ? "Dark" : "Lit" },
-        ],
-        { level: light / 100, on: true, badge: `${fmt(light, 0)} %` },
-      );
-    }
-    case "soil-moisture": {
-      const moisture = held ? get("moisture", 45) : 60 - ((t * 0.8) % 40);
-      return sample(
-        { moisture },
-        [
-          { label: "Moisture", value: `${fmt(moisture, 0)} %` },
-          { label: "Threshold", value: moisture < settings.dryPct ? "Dry" : "Wet enough" },
-        ],
-        { level: moisture / 100, on: true, badge: `${fmt(moisture, 0)} %` },
-      );
-    }
-    case "mq2": {
-      const gasPpm = held ? get("gasPpm", 300) : 300 + 250 * Math.max(0, Math.sin(t / 6)) ** 3;
-      return sample(
-        { gasPpm },
-        [
-          { label: "Gas", value: `${fmt(gasPpm, 0)} ppm` },
-          { label: "Alarm", value: gasPpm > settings.gasPpm ? "Over threshold" : "Normal" },
-        ],
-        { level: Math.min(1, gasPpm / 600), on: true, badge: `${fmt(gasPpm, 0)} ppm` },
-      );
-    }
-    case "mpu6050": {
-      const pitch = held ? get("pitch", 0) : 25 * Math.sin(t / 2);
-      const roll = held ? get("roll", 0) : 15 * Math.cos(t / 3);
-      return sample(
-        { pitch, roll },
-        [
-          { label: "Pitch", value: `${fmt(pitch)}°` },
-          { label: "Roll", value: `${fmt(roll)}°` },
-          { label: "Accel Z", value: `${fmt(Math.cos((pitch * Math.PI) / 180), 2)} g` },
-        ],
-        { level: 0.5, on: true, badge: `${fmt(pitch, 0)}° tilt` },
-      );
-    }
-    case "bmp280": {
-      const pressureHpa = held ? get("pressureHpa", 1013.2) : 1013.2 + 1.5 * Math.sin(t / 20);
-      const temperatureC = held ? get("temperatureC", 23.1) : 23.1 + 0.4 * Math.sin(t / 9);
-      return sample(
-        { pressureHpa, temperatureC },
-        [
-          { label: "Pressure", value: `${fmt(pressureHpa)} hPa` },
-          { label: "Temperature", value: `${fmt(temperatureC)} °C` },
-          {
-            label: "Altitude",
-            value: `${fmt(44330 * (1 - (pressureHpa / 1013.25) ** 0.1903), 1)} m`,
-          },
-        ],
-        { level: 0.5, on: true, badge: `${fmt(pressureHpa, 0)} hPa` },
-      );
-    }
-    default:
-      return sample({}, [], { level: 0, on: false });
-  }
+  const read: SensorRead = {
+    t,
+    held,
+    get: (key, fallback) => (held ? inputOf(inputs, node.id, key, fallback) : fallback),
+    inputs,
+    node,
+    settings,
+    sample: (values, readings, extra) => ({ node, readings, values, held, ...extra }),
+  };
+  const sensor = SENSORS.get(node.partId);
+  return sensor ? sensor(read) : read.sample({}, [], { level: 0, on: false });
 }
 
 /** Whether a sensor's condition holds, by the board's settings. Null for sensors the sketch doesn't compare. */
@@ -198,15 +234,15 @@ export function alertOf(sample: SensorSample, settings: BoardSettings): boolean 
   const v = sample.values;
   switch (sample.node.partId) {
     case "hc-sr04":
-      return v.distanceCm < settings.warnCm;
+      return v.distanceCm !== undefined && v.distanceCm < settings.warnCm;
     case "pir":
       return v.motion === 1;
     case "mq2":
-      return v.gasPpm > settings.gasPpm;
+      return v.gasPpm !== undefined && v.gasPpm > settings.gasPpm;
     case "soil-moisture":
-      return v.moisture < settings.dryPct;
+      return v.moisture !== undefined && v.moisture < settings.dryPct;
     case "ldr":
-      return v.light < settings.darkPct;
+      return v.light !== undefined && v.light < settings.darkPct;
     default:
       return null;
   }

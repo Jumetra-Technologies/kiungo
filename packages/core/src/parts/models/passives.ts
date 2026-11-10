@@ -3,7 +3,7 @@
  * assume. Its four color bands follow the value set in the lab (or 220 Ω).
  */
 
-import { MATERIAL, lyingCylinder, shade, wire } from "../build";
+import { MATERIAL, lyingCylinder, shade, wire } from "../shapes";
 import type { PartModel, Solid } from "../types";
 
 /** Values a kit has, in ohms. */
@@ -39,20 +39,21 @@ export function resistorBands(ohms: number): [string, string, string, string] {
   const first = Number(digits[0]);
   const second = Number(digits[1] ?? 0);
   const zeros = Math.max(0, digits.length - 2);
-  return [DIGIT_COLORS[first], DIGIT_COLORS[second], DIGIT_COLORS[Math.min(9, zeros)], GOLD];
+  const color = (digit: number) => DIGIT_COLORS[digit] ?? "";
+  return [color(first), color(second), color(Math.min(9, zeros)), GOLD];
 }
 
 const BODY = "#d9c9a3";
 const LEAD_Y = 1.0;
 const BODY_X = 4.85;
 const BODY_LEN = 6.3;
-const BAND_X = [BODY_X + 0.9, BODY_X + 1.9, BODY_X + 2.9, BODY_X + 5.0];
+const BAND_X = [BODY_X + 0.9, BODY_X + 1.9, BODY_X + 2.9, BODY_X + 5.0] as const;
 
 function bands(ohms: number): Solid[] {
   return resistorBands(ohms).map((color, i) => ({
     kind: "box",
     id: `band-${i + 1}`,
-    x: BAND_X[i],
+    x: BAND_X[i] ?? 0,
     y: 0.02,
     w: 0.62,
     h: 2.46,
@@ -82,9 +83,24 @@ export const RESISTOR: PartModel = {
     "Limits current. Put one in series with every LED: from a 5 V pin, 220 Ω lets about 14 mA through, bright and safe for the LED and the pin. Its color bands say its value.",
   size: { w: 16, h: 2.5, d: 2.5 },
   solids: [
-    wire(0, LEAD_Y, BODY_X + 0.4, 0.5, MATERIAL.tin, 0.95),
-    wire(BODY_X + BODY_LEN - 0.4, LEAD_Y, 16 - (BODY_X + BODY_LEN - 0.4), 0.5, MATERIAL.tin, 0.95),
-    ...lyingCylinder(BODY_X, 1.25, BODY_LEN, 1.2, BODY, 0, "body"),
+    wire({ x: 0, y: LEAD_Y, w: BODY_X + 0.4, h: 0.5, color: MATERIAL.tin, z: 0.95 }),
+    wire({
+      x: BODY_X + BODY_LEN - 0.4,
+      y: LEAD_Y,
+      w: 16 - (BODY_X + BODY_LEN - 0.4),
+      h: 0.5,
+      color: MATERIAL.tin,
+      z: 0.95,
+    }),
+    ...lyingCylinder({
+      x: BODY_X,
+      cy: 1.25,
+      length: BODY_LEN,
+      r: 1.2,
+      color: BODY,
+      z: 0,
+      id: "body",
+    }),
     ...bands(DEFAULT_OHMS),
   ],
   features: [
@@ -216,6 +232,7 @@ export function withResistorValue(model: PartModel, ohms: number): PartModel {
     solids: model.solids.map((s) => {
       if (s.kind !== "box" || !s.id?.startsWith("band-")) return s;
       const color = colors[Number(s.id.slice(5)) - 1];
+      if (!color) return s;
       return { ...s, top: color, side: shade(color, 0.75), fill: color };
     }),
   };

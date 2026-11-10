@@ -48,7 +48,7 @@ export type BoardFrame =
   | { type: "unknown"; code: number; payload: Uint8Array };
 
 function u16(bytes: Uint8Array, at: number): number {
-  return bytes[at] | (bytes[at + 1] << 8);
+  return (bytes[at] ?? 0) | ((bytes[at + 1] ?? 0) << 8);
 }
 
 /** Push a sensor value. Values are signed 32-bit; the adapter decides the unit (cm for an HC-SR04). */
@@ -91,7 +91,8 @@ export function encodeIn(bytes: Uint8Array): Uint8Array[] {
 }
 
 export function decodeFrame(raw: Uint8Array): BoardFrame {
-  const code = raw[0];
+  // An empty frame has no code: -1 matches no frame type.
+  const code = raw[0] ?? -1;
   const payload = raw.subarray(1);
   switch (code) {
     case Frame.HelloAck:
@@ -115,7 +116,8 @@ export function decodeFrame(raw: Uint8Array): BoardFrame {
           ((payload[o + 3] ?? 0) << 24)) >>>
         0;
       const pwm: Array<[number, number]> = [];
-      for (let i = 8; i + 1 < payload.length; i += 2) pwm.push([payload[i], payload[i + 1]]);
+      for (let i = 8; i + 1 < payload.length; i += 2)
+        pwm.push([payload[i] ?? 0, payload[i + 1] ?? 0]);
       return { type: "out", levels: u32(0), driven: u32(4), pwm };
     }
     case Frame.Safe: {

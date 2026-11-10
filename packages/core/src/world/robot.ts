@@ -30,29 +30,26 @@ export function robotFromCircuit(
 ): RobotSpec | null {
   const on = (n: LabNode) => analysis.nodes[n.id]?.links.some((l) => l.board === boardId);
   const motors = nodes.filter((n) => n.partId === "dc-motor" && on(n)).sort(byLabel);
-  if (motors.length < 2) return null;
+  const [left, right] = motors;
+  if (!left || !right) return null;
   const sonars = nodes.filter((n) => n.partId === "hc-sr04" && on(n)).sort(byLabel);
   const floors = nodes.filter((n) => n.partId === "ldr" && on(n)).sort(byLabel);
   const front = CHASSIS.length / 2;
   return {
     ...CHASSIS,
-    motors: { left: motors[0].id, right: motors[1].id },
+    motors: { left: left.id, right: right.id },
     sensors: [
-      ...sonars
-        .slice(0, 1)
-        .map((n) => ({
-          nodeId: n.id,
-          kind: "distance" as const,
-          pose: { x: front, y: 0, heading: 0 },
-        })),
+      ...sonars.slice(0, 1).map((n) => ({
+        nodeId: n.id,
+        kind: "distance" as const,
+        pose: { x: front, y: 0, heading: 0 },
+      })),
       // Left sensor first: +y is the robot's left.
-      ...floors
-        .slice(0, 2)
-        .map((n, i) => ({
-          nodeId: n.id,
-          kind: "floor" as const,
-          pose: { x: front - 0.01, y: i === 0 ? FLOOR_OFFSET_Y : -FLOOR_OFFSET_Y, heading: 0 },
-        })),
+      ...floors.slice(0, 2).map((n, i) => ({
+        nodeId: n.id,
+        kind: "floor" as const,
+        pose: { x: front - 0.01, y: i === 0 ? FLOOR_OFFSET_Y : -FLOOR_OFFSET_Y, heading: 0 },
+      })),
     ],
   };
 }

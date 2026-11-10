@@ -38,11 +38,11 @@ export function cobsDecode(encoded: Uint8Array): Uint8Array {
   const out: number[] = [];
   let i = 0;
   while (i < encoded.length) {
-    const code = encoded[i++];
+    const code = encoded[i++] ?? 0;
     if (code === 0) throw new Error("COBS: a zero inside the frame");
     if (i + code - 1 > encoded.length)
       throw new Error("COBS: the frame is shorter than its code byte says");
-    for (let n = 1; n < code; n++) out.push(encoded[i++]);
+    for (let n = 1; n < code; n++) out.push(encoded[i++] ?? 0);
     if (code !== 0xff && i < encoded.length) out.push(0);
   }
   return Uint8Array.from(out);

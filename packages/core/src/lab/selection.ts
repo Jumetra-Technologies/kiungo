@@ -27,18 +27,8 @@ export function nextSelection(
   const edgeSel = edgeChanges.filter((c) => c.type === "select" && c.id);
   if (!nodeSel.length && !edgeSel.length) return null;
 
-  const ids = [...current.nodes];
-  for (const c of nodeSel) {
-    const at = ids.indexOf(c.id!);
-    if (c.selected && at < 0) ids.push(c.id!);
-    if (!c.selected && at >= 0) ids.splice(at, 1);
-  }
-
-  let wire = current.wire;
-  for (const c of edgeSel) {
-    if (c.selected) wire = c.id!;
-    else if (wire === c.id) wire = null;
-  }
+  const ids = selectedNodes(current.nodes, nodeSel);
+  let wire = selectedWire(current.wire, edgeSel);
   // A wire is inspected on its own; picking parts clears it.
   if (ids.length && nodeSel.some((c) => c.selected)) wire = null;
   if (wire && edgeSel.some((c) => c.selected)) ids.length = 0;
@@ -48,4 +38,23 @@ export function nextSelection(
     ids.length === current.nodes.length &&
     ids.every((id, i) => id === current.nodes[i]);
   return same ? null : { nodes: ids, wire };
+}
+
+function selectedNodes(current: string[], changes: SelectChange[]): string[] {
+  const ids = [...current];
+  for (const c of changes) {
+    const at = ids.indexOf(c.id!);
+    if (c.selected && at < 0) ids.push(c.id!);
+    if (!c.selected && at >= 0) ids.splice(at, 1);
+  }
+  return ids;
+}
+
+function selectedWire(current: string | null, changes: SelectChange[]): string | null {
+  let wire = current;
+  for (const c of changes) {
+    if (c.selected) wire = c.id!;
+    else if (wire === c.id) wire = null;
+  }
+  return wire;
 }

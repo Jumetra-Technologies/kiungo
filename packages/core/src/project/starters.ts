@@ -372,7 +372,7 @@ export function getStarter(id: string): Starter | undefined {
 /** A board pin id as Arduino code names it: "D13" → "13", "A0" → "A0". */
 export function arduinoPinName(pinId: string): string | null {
   const digital = /^D(\d+)$/.exec(pinId);
-  if (digital) return digital[1];
+  if (digital) return digital[1] ?? null;
   if (/^A\d+$/.test(pinId)) return pinId;
   return null;
 }
@@ -396,11 +396,8 @@ export interface StarterBuild {
  * The circuit and the code for a new project. With no starter, the board
  * alone and an empty sketch.
  */
-export function buildStarter(opts: {
-  name: string;
-  board: string;
-  starter: string | null;
-}): StarterBuild {
+/** The starter asked for, checked against the board. Throws a StarterError when it can't be built. */
+function starterFor(opts: { board: string; starter: string | null }): Starter | undefined {
   const starter = opts.starter ? getStarter(opts.starter) : undefined;
   if (opts.starter && !starter)
     throw new StarterError(`There's no starter called “${opts.starter}”.`);
@@ -408,21 +405,16 @@ export function buildStarter(opts: {
   if (notOn)
     throw new StarterError(`The “${starter?.title}” starter isn't for this board. ${notOn}`);
   if (!getPinout(opts.board).controller) throw new StarterError(`“${opts.board}” isn't a board.`);
+  return starter;
+}
 
-  const board: LabNode = {
-    id: makeId("n"),
-    partId: opts.board,
-    label: nextLabel([], opts.board),
-    x: 80,
-    y: 80,
-    mode: "virtual",
-  };
+/** The starter's parts placed by the board and auto-wired to it, in order. */
+function placeParts(parts: readonly string[], board: LabNode) {
   let nodes: LabNode[] = [board];
   let wires: LabWire[] = [];
   /** "part" and "part#2" → the node made for it (the first and second of that part). */
   const byPart = new Map<string, LabNode>();
-
-  for (const partId of starter?.parts ?? []) {
+  for (const partId of parts) {
     const at = placeNode(partId, nodes, board);
     const node: LabNode = {
       id: makeId("n"),
@@ -442,27 +434,45 @@ export function buildStarter(opts: {
       ...plan.wires.map((w) => ({ id: makeId("w"), from: w.from, to: w.to })),
     ];
   }
+  return { nodes, wires, byPart };
+}
+
+/** The board pin a part's pin ended up wired to, by its Arduino name: "13", "A0". */
+function wiredPinName(node: LabNode | undefined, pin: string, wires: LabWire[], board: LabNode) {
+  const wire =
+    node &&
+    wires.find(
+      (w) =>
+        (w.to.node === node.id && w.to.pin === pin) ||
+        (w.from.node === node.id && w.from.pin === pin),
+    );
+  if (!wire) return null;
+  const boardEnd =
+    wire.from.node === board.id ? wire.from.pin : wire.to.node === board.id ? wire.to.pin : null;
+  return boardEnd ? arduinoPinName(boardEnd) : null;
+}
+
+export function buildStarter(opts: {
+  name: string;
+  board: string;
+  starter: string | null;
+}): StarterBuild {
+  const starter = starterFor(opts);
+  const board: LabNode = {
+    id: makeId("n"),
+    partId: opts.board,
+    label: nextLabel([], opts.board),
+    x: 80,
+    y: 80,
+    mode: "virtual",
+  };
+  const { nodes, wires, byPart } = placeParts(starter?.parts ?? [], board);
 
   const code = starter
     ? starter.code.replace(
         /\{\{([a-z0-9-]+(?:#\d+)?)\.([A-Za-z0-9_]+)\}\}/g,
         (_match, partId: string, pin: string) => {
-          const node = byPart.get(partId);
-          const wire =
-            node &&
-            wires.find(
-              (w) =>
-                (w.to.node === node.id && w.to.pin === pin) ||
-                (w.from.node === node.id && w.from.pin === pin),
-            );
-          const boardEnd =
-            wire &&
-            (wire.from.node === board.id
-              ? wire.from.pin
-              : wire.to.node === board.id
-                ? wire.to.pin
-                : null);
-          const name = boardEnd ? arduinoPinName(boardEnd) : null;
+          const name = wiredPinName(byPart.get(partId), pin, wires, board);
           if (!name)
             throw new StarterError(
               `The “${starter.title}” starter couldn't wire ${partId} ${pin} to a pin on this board.`,

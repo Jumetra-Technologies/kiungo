@@ -84,7 +84,8 @@ const SHORT: Record<string, string> = {
 
 export function shortName(partId: string): string {
   return (
-    SHORT[partId] ?? (getPart(partId)?.name ?? partId).split(",")[0].replace(/\s*\(.*\)\s*$/, "")
+    SHORT[partId] ??
+    ((getPart(partId)?.name ?? partId).split(",")[0] ?? "").replace(/\s*\(.*\)\s*$/, "")
   );
 }
 

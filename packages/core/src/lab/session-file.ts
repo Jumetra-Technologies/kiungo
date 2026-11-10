@@ -89,15 +89,8 @@ function freshId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${rand}`;
 }
 
-/**
- * Read a `.kiungo.json` file (its text, or the parsed object). Throws
- * `SessionFileError` when it isn't a lab session at all; otherwise returns
- * the session the lab can open plus warnings for anything it dropped.
- */
-export function parseSessionFile(
-  input: string | unknown,
-  opts: { keepId?: boolean } = {},
-): ParsedSessionFile {
+/** The session object inside a file: the wrapped format, or a bare session. Throws when there's none. */
+function sessionOf(input: string | unknown): Record<string, unknown> & { nodes: unknown[] } {
   let raw: unknown = input;
   if (typeof input === "string") {
     try {
@@ -120,38 +113,48 @@ export function parseSessionFile(
   const s = wrapped ? raw.session : raw;
   if (!isObj(s) || !Array.isArray(s.nodes))
     throw new SessionFileError("This file has no lab session in it.");
+  return s as Record<string, unknown> & { nodes: unknown[] };
+}
 
-  const warnings: string[] = [];
+/** One part, or the warning that says why it was skipped. */
+function readNode(n: unknown, nodeIds: Set<string>): LabNode | string {
+  if (!isObj(n) || typeof n.id !== "string" || typeof n.partId !== "string")
+    return "Skipped a part with no id or part type.";
+  if (nodeIds.has(n.id)) return `Skipped a second part with id “${n.id}”.`;
+  if (!hasPinout(n.partId))
+    return `Skipped “${str(n.label, n.partId)}”: the lab has no part “${n.partId}”.`;
+  const mode = n.mode === "physical" || n.mode === "hybrid" ? n.mode : "virtual";
+  return {
+    id: n.id,
+    partId: n.partId,
+    label: str(n.label, n.partId),
+    x: Math.round(num(n.x, 80)),
+    y: Math.round(num(n.y, 80)),
+    mode,
+  };
+}
+
+function readNodes(list: unknown[], warnings: string[]): LabNode[] {
   const nodes: LabNode[] = [];
   const nodeIds = new Set<string>();
-  for (const n of s.nodes.slice(0, MAX_NODES)) {
-    if (!isObj(n) || typeof n.id !== "string" || typeof n.partId !== "string") {
-      warnings.push("Skipped a part with no id or part type.");
+  for (const n of list.slice(0, MAX_NODES)) {
+    const node = readNode(n, nodeIds);
+    if (typeof node === "string") {
+      warnings.push(node);
       continue;
     }
-    if (nodeIds.has(n.id)) {
-      warnings.push(`Skipped a second part with id “${n.id}”.`);
-      continue;
-    }
-    if (!hasPinout(n.partId)) {
-      warnings.push(`Skipped “${str(n.label, n.partId)}”: the lab has no part “${n.partId}”.`);
-      continue;
-    }
-    const mode = n.mode === "physical" || n.mode === "hybrid" ? n.mode : "virtual";
-    nodes.push({
-      id: n.id,
-      partId: n.partId,
-      label: str(n.label, n.partId),
-      x: Math.round(num(n.x, 80)),
-      y: Math.round(num(n.y, 80)),
-      mode,
-    });
-    nodeIds.add(n.id);
+    nodes.push(node);
+    nodeIds.add(node.id);
   }
-  if (s.nodes.length > MAX_NODES) warnings.push(`Only the first ${MAX_NODES} parts were opened.`);
+  if (list.length > MAX_NODES) warnings.push(`Only the first ${MAX_NODES} parts were opened.`);
+  return nodes;
+}
 
+type Ref = { node: string; pin: string };
+
+function readWires(list: unknown, nodes: LabNode[], warnings: string[]): LabWire[] {
   const partOf = new Map(nodes.map((n) => [n.id, n.partId]));
-  const pinExists = (ref: unknown): ref is { node: string; pin: string } =>
+  const pinExists = (ref: unknown): ref is Ref =>
     isObj(ref) &&
     typeof ref.node === "string" &&
     typeof ref.pin === "string" &&
@@ -161,15 +164,17 @@ export function parseSessionFile(
   const wires: LabWire[] = [];
   const seen = new Set<string>();
   const wireIds = new Set<string>();
-  for (const w of (Array.isArray(s.wires) ? s.wires : []).slice(0, MAX_WIRES)) {
+  for (const w of (Array.isArray(list) ? list : []).slice(0, MAX_WIRES)) {
     if (!isObj(w) || !pinExists(w.from) || !pinExists(w.to)) {
       warnings.push(
         `Skipped a wire to a part or pin that isn't in the session${isObj(w) && typeof w.id === "string" ? ` (${w.id})` : ""}.`,
       );
       continue;
     }
-    const a = `${w.from.node}:${w.from.pin}`;
-    const b = `${w.to.node}:${w.to.pin}`;
+    const from = w.from as Ref;
+    const to = w.to as Ref;
+    const a = `${from.node}:${from.pin}`;
+    const b = `${to.node}:${to.pin}`;
     if (a === b) {
       warnings.push("Skipped a wire from a pin to itself.");
       continue;
@@ -181,29 +186,32 @@ export function parseSessionFile(
     wireIds.add(id);
     wires.push({
       id,
-      from: { node: w.from.node, pin: w.from.pin },
-      to: { node: w.to.node, pin: w.to.pin },
+      from: { node: from.node, pin: from.pin },
+      to: { node: to.node, pin: to.pin },
       ...(typeof w.color === "string" ? { color: w.color } : {}),
     });
   }
+  return wires;
+}
 
+const keepable = (v: unknown) =>
+  typeof v === "number" ? Number.isFinite(v) : typeof v === "string" || typeof v === "boolean";
+
+function readInputs(raw: unknown, nodeIds: Set<string>): Record<string, NodeInputs> {
   const inputs: Record<string, NodeInputs> = {};
-  if (isObj(s.inputs)) {
-    for (const [id, values] of Object.entries(s.inputs)) {
-      if (!nodeIds.has(id) || !isObj(values)) continue;
-      const clean: NodeInputs = {};
-      for (const [k, v] of Object.entries(values))
-        if (
-          typeof v === "number"
-            ? Number.isFinite(v)
-            : typeof v === "string" || typeof v === "boolean"
-        )
-          clean[k] = v as number | string | boolean;
-      inputs[id] = clean;
-    }
+  if (!isObj(raw)) return inputs;
+  for (const [id, values] of Object.entries(raw)) {
+    if (!nodeIds.has(id) || !isObj(values)) continue;
+    const clean: NodeInputs = {};
+    for (const [k, v] of Object.entries(values))
+      if (keepable(v)) clean[k] = v as number | string | boolean;
+    inputs[id] = clean;
   }
+  return inputs;
+}
 
-  const log: LogEntry[] = (Array.isArray(s.log) ? s.log : [])
+function readLog(raw: unknown, nodeIds: Set<string>): LogEntry[] {
+  return (Array.isArray(raw) ? raw : [])
     .filter(
       (e): e is LogEntry =>
         isObj(e) &&
@@ -221,6 +229,24 @@ export function parseSessionFile(
         ? { nodes: e.nodes.filter((x) => typeof x === "string" && nodeIds.has(x)) }
         : {}),
     }));
+}
+
+/**
+ * Read a `.kiungo.json` file (its text, or the parsed object). Throws
+ * `SessionFileError` when it isn't a lab session at all; otherwise returns
+ * the session the lab can open plus warnings for anything it dropped.
+ */
+export function parseSessionFile(
+  input: string | unknown,
+  opts: { keepId?: boolean } = {},
+): ParsedSessionFile {
+  const s = sessionOf(input);
+  const warnings: string[] = [];
+  const nodes = readNodes(s.nodes, warnings);
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const wires = readWires(s.wires, nodes, warnings);
+  const inputs = readInputs(s.inputs, nodeIds);
+  const log = readLog(s.log, nodeIds);
 
   const now = new Date().toISOString();
   const session: LabSession = {

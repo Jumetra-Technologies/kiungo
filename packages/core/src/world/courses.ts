@@ -89,16 +89,14 @@ export function parseWorld(input: string): WorldSpec | null {
         w: Math.max(0.5, Math.min(10, raw.arena.w)),
         h: Math.max(0.5, Math.min(10, raw.arena.h)),
       },
-      obstacles: (Array.isArray(raw.obstacles) ? raw.obstacles : [])
-        .slice(0, 200)
-        .map((o, i) => ({
-          id: typeof o?.id === "string" ? o.id.slice(0, 40) : `box-${i + 1}`,
-          x: num(o?.x),
-          y: num(o?.y),
-          w: Math.max(0.01, num(o?.w, 0.1)),
-          h: Math.max(0.01, num(o?.h, 0.1)),
-          angle: num(o?.angle),
-        })),
+      obstacles: (Array.isArray(raw.obstacles) ? raw.obstacles : []).slice(0, 200).map((o, i) => ({
+        id: typeof o?.id === "string" ? o.id.slice(0, 40) : `box-${i + 1}`,
+        x: num(o?.x),
+        y: num(o?.y),
+        w: Math.max(0.01, num(o?.w, 0.1)),
+        h: Math.max(0.01, num(o?.h, 0.1)),
+        angle: num(o?.angle),
+      })),
       line:
         raw.line && Array.isArray(raw.line.points)
           ? {

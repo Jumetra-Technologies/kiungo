@@ -29,10 +29,11 @@ export function boardForSession(session: LabSession): { board: string; warning: 
   const boards = session.nodes.filter((n) => getPinout(n.partId).controller);
   const buildable = boards.find((n) => PROJECT_BOARDS.some((b) => b.part === n.partId));
   if (buildable) return { board: buildable.partId, warning: null };
-  if (boards.length) {
+  const [first] = boards;
+  if (first) {
     return {
       board: "arduino-uno",
-      warning: `The desktop app can't build code for ${boards[0].label} yet, so the project's code is for the Arduino Uno. The circuit is kept as it was.`,
+      warning: `The desktop app can't build code for ${first.label} yet, so the project's code is for the Arduino Uno. The circuit is kept as it was.`,
     };
   }
   return { board: "arduino-uno", warning: null };

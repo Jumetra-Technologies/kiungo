@@ -22,7 +22,7 @@ export interface PacerOptions {
   onSlice?: () => void;
 }
 
-// eslint-disable-next-line no-restricted-properties -- pacing only; see the file comment.
+// Wall-clock time paces the run only; the simulation itself counts cycles (see the file comment).
 const wallClock = () => performance.now();
 /**
  * Yields to the event loop without setTimeout's minimum delay: browsers

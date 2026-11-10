@@ -54,7 +54,7 @@ export class RobotRun {
 
   /** Inputs for parts that aren't the robot's own sensors (the lab's sweep or the Inspector). */
   setOtherInputs(inputs: PeripheralInput[]): void {
-    this.others = inputs.filter((i) => !this.worldIds.has(i.id.split(":")[0]));
+    this.others = inputs.filter((i) => !this.worldIds.has(i.id.split(":")[0] ?? ""));
     this.applySensors();
   }
 

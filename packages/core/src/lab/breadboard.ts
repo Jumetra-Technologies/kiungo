@@ -33,11 +33,13 @@ export function breadboardUse(nodeId: string, analysis: Analysis, nodes: LabNode
   const hole0 = new Map(spec.holes.map((h) => [h.id, h]));
   const out: StripUse[] = [];
   for (const strip of spec.strips) {
+    const [first] = strip;
+    if (!first) continue;
     const holes = strip.filter((h) => wired.has(h));
     if (!holes.length) continue;
-    const net = nets.get(analysis.netOfPin.get(`${nodeId}:${strip[0]}`) ?? "");
+    const net = nets.get(analysis.netOfPin.get(`${nodeId}:${first}`) ?? "");
     if (!net) continue;
-    const hole = hole0.get(strip[0])!;
+    const hole = hole0.get(first)!;
     const ends = net.pins
       .filter((p) => p.node !== nodeId && analysis.nodes[p.node]?.wiredPins.has(p.pin))
       .map((p) => {
@@ -46,7 +48,7 @@ export function breadboardUse(nodeId: string, analysis: Analysis, nodes: LabNode
         return `${n?.label ?? p.node} ${pin?.label ?? p.pin}`;
       });
     out.push({
-      id: strip[0],
+      id: first,
       name: stripName(hole.strip),
       rail: hole.rail,
       kind: net.kind,

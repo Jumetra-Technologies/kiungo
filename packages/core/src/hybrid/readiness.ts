@@ -31,6 +31,70 @@ export interface PartReadiness {
 const isBoard = (n: LabNode) => getPinout(n.partId).controller;
 const isPassive = (n: LabNode) => Boolean(getPinout(n.partId).passive) || n.partId === "resistor";
 
+interface RowCtx {
+  nodes: LabNode[];
+  analysis: Analysis;
+  /** Virtual parts the Hybrid shim plays, and boards or parts it can't. */
+  virtualById: Map<string, { played: boolean; why?: string }>;
+  onRealBoard: (n: LabNode) => boolean;
+}
+
+function boardRow({ nodes, analysis, virtualById }: RowCtx, n: LabNode): PartReadiness {
+  const base = { nodeId: n.id, label: n.label };
+  if (!boardIsReal(n))
+    return {
+      ...base,
+      status: "virtual",
+      why: "Emulated in the lab: your code runs on a simulated chip.",
+    };
+  const plays = nodes.some(
+    (p) =>
+      virtualById.get(p.id)?.played && analysis.nodes[p.id]?.links.some((l) => l.board === n.id),
+  );
+  const problem = virtualById.get(n.id);
+  if (problem && !problem.played) return { ...base, status: "unavailable", why: problem.why ?? "" };
+  return plays
+    ? {
+        ...base,
+        status: "hybrid",
+        why: "The real board runs your code; virtual parts answer it from the lab.",
+      }
+    : { ...base, status: "real", why: "The real board runs your code, with real parts only." };
+}
+
+function partRow({ virtualById, onRealBoard }: RowCtx, n: LabNode): PartReadiness {
+  const base = { nodeId: n.id, label: n.label };
+  if (isPassive(n))
+    return {
+      ...base,
+      status: onRealBoard(n) || !isVirtual(n) ? "real" : "virtual",
+      why: "Joins pins: the same in the lab and on the desk.",
+    };
+  const v = virtualById.get(n.id);
+  if (v && !v.played) return { ...base, status: "unavailable", why: v.why ?? "" };
+  if (!isVirtual(n))
+    return {
+      ...base,
+      status: "real",
+      why: onRealBoard(n)
+        ? "On the desk: the real board reads or drives it."
+        : "Marked Physical, but not wired to a real board: Run plays it in the lab.",
+    };
+  if (v?.played)
+    return {
+      ...base,
+      status: "virtual",
+      why: "Played by the lab: the sketch on the real board reads the value you set.",
+    };
+  if (onRealBoard(n))
+    return {
+      ...base,
+      status: "virtual",
+      why: "The real board drives this pin; the lab shows what it does. Wire the real one to see it on the desk.",
+    };
+  return { ...base, status: "virtual", why: "Simulated in the lab." };
+}
+
 /** Each part's status in a run, boards first. */
 export function partReadiness(nodes: LabNode[], analysis: Analysis): PartReadiness[] {
   const realBoards = nodes.filter((n) => isBoard(n) && boardIsReal(n));
@@ -47,61 +111,8 @@ export function partReadiness(nodes: LabNode[], analysis: Analysis): PartReadine
   const onRealBoard = (n: LabNode) =>
     realBoards.some((b) => analysis.nodes[n.id]?.links.some((l) => l.board === b.id));
 
-  const rows = nodes.map((n): PartReadiness => {
-    const base = { nodeId: n.id, label: n.label };
-    if (isBoard(n)) {
-      if (!boardIsReal(n))
-        return {
-          ...base,
-          status: "virtual",
-          why: "Emulated in the lab: your code runs on a simulated chip.",
-        };
-      const plays = nodes.some(
-        (p) =>
-          virtualById.get(p.id)?.played &&
-          analysis.nodes[p.id]?.links.some((l) => l.board === n.id),
-      );
-      const problem = virtualById.get(n.id);
-      if (problem && !problem.played)
-        return { ...base, status: "unavailable", why: problem.why ?? "" };
-      return plays
-        ? {
-            ...base,
-            status: "hybrid",
-            why: "The real board runs your code; virtual parts answer it from the lab.",
-          }
-        : { ...base, status: "real", why: "The real board runs your code, with real parts only." };
-    }
-    if (isPassive(n))
-      return {
-        ...base,
-        status: onRealBoard(n) || !isVirtual(n) ? "real" : "virtual",
-        why: "Joins pins: the same in the lab and on the desk.",
-      };
-    const v = virtualById.get(n.id);
-    if (v && !v.played) return { ...base, status: "unavailable", why: v.why ?? "" };
-    if (!isVirtual(n))
-      return {
-        ...base,
-        status: "real",
-        why: onRealBoard(n)
-          ? "On the desk: the real board reads or drives it."
-          : "Marked Physical, but not wired to a real board: Run plays it in the lab.",
-      };
-    if (v?.played)
-      return {
-        ...base,
-        status: "virtual",
-        why: "Played by the lab: the sketch on the real board reads the value you set.",
-      };
-    if (onRealBoard(n))
-      return {
-        ...base,
-        status: "virtual",
-        why: "The real board drives this pin; the lab shows what it does. Wire the real one to see it on the desk.",
-      };
-    return { ...base, status: "virtual", why: "Simulated in the lab." };
-  });
+  const ctx: RowCtx = { nodes, analysis, virtualById, onRealBoard };
+  const rows = nodes.map((n): PartReadiness => (isBoard(n) ? boardRow(ctx, n) : partRow(ctx, n)));
   const rank = (r: PartReadiness) => (isBoard(nodes.find((n) => n.id === r.nodeId)!) ? 0 : 1);
   return rows.sort((a, b) => rank(a) - rank(b));
 }

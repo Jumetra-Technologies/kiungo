@@ -10,7 +10,7 @@
  */
 
 import { getPart, PARTS, searchParts, type PartModel } from "../parts";
-import { getPinout } from "./pinout";
+import { getPinout, type Pinout } from "./pinout";
 import type { LabNode } from "./types";
 
 export interface Suggestion {
@@ -174,20 +174,42 @@ function boardsOn(nodes: LabNode[]) {
   return nodes.filter((n) => getPinout(n.partId).controller);
 }
 
+/** A breadboard's fit: it shares the board's supply with every part. */
+function breadboardFit(board: LabNode | undefined): Suggestion["fit"] {
+  if (!board) return { tone: "ok", text: "Shares one 5 V pin with every part" };
+  const boardName = getPart(board.partId)?.name.split(" ")[0] ?? "the board";
+  return {
+    tone: "ok",
+    text: `Shares the ${boardName} ${getPinout(board.partId).logic} V and GND with every part`,
+  };
+}
+
+const SIGNAL_OUT_ROLES = ["out-digital", "io", "tx", "sda", "out-analog"];
+
+/** Signal levels and analog inputs, once the board can power the part. */
+function signalFit(pinout: Pinout, bp: Pinout, name: string, min: number): Suggestion["fit"] {
+  // A 5 V part that can't run at the board's 3.3 V drives 5 V signals into it.
+  const mustRunAt5 = min > bp.logic + 0.2;
+  const drives = pinout.pins.some((p) => p.role !== undefined && SIGNAL_OUT_ROLES.includes(p.role));
+  if (pinout.logic >= 5 && mustRunAt5 && bp.tolerates5V !== true && drives)
+    return { tone: "warn", text: `5 V signals: needs a divider on ${name}` };
+  if (bp.logic >= 5 && pinout.tolerates5V === false)
+    return { tone: "warn", text: `3.3 V part: run it from ${name}'s 3.3V pin` };
+  if (
+    pinout.pins.some((p) => p.role === "out-analog" && p.required) &&
+    !bp.pins.some((p) => p.fns?.includes("analog"))
+  )
+    return { tone: "warn", text: `${name} has no analog inputs` };
+  return { tone: "ok", text: `Works with ${name} (${bp.logic} V)` };
+}
+
 /** Does this part suit the first board on the canvas? */
 export function fitFor(partId: string, nodes: LabNode[]): Suggestion["fit"] {
   const board = boardsOn(nodes)[0];
   const pinout = getPinout(partId);
   if (partId === "resistor")
     return { tone: "ok", text: "Goes in series with an LED: 220 Ω at 5 V" };
-  if (pinout.passive) {
-    if (!board) return { tone: "ok", text: "Shares one 5 V pin with every part" };
-    const boardName = getPart(board.partId)?.name.split(" ")[0] ?? "the board";
-    return {
-      tone: "ok",
-      text: `Shares the ${boardName} ${getPinout(board.partId).logic} V and GND with every part`,
-    };
-  }
+  if (pinout.passive) return breadboardFit(board);
   if (!board)
     return pinout.controller ? undefined : { tone: "warn", text: "Add a board to drive it" };
   if (pinout.controller)
@@ -198,30 +220,7 @@ export function fitFor(partId: string, nodes: LabNode[]): Suggestion["fit"] {
   const rails = bp.pins.filter((p) => p.supplies).map((p) => p.supplies!);
   if (!rails.some((v) => v >= min - 0.2 && v <= max + 0.25))
     return { tone: "warn", text: `Needs ${min}–${max} V; ${name} can't supply it` };
-  // A 5 V part that can't run at the board's 3.3 V drives 5 V signals into it.
-  const mustRunAt5 = min > bp.logic + 0.2;
-  if (
-    pinout.logic >= 5 &&
-    mustRunAt5 &&
-    bp.tolerates5V !== true &&
-    pinout.pins.some(
-      (p) =>
-        p.role === "out-digital" ||
-        p.role === "io" ||
-        p.role === "tx" ||
-        p.role === "sda" ||
-        p.role === "out-analog",
-    )
-  )
-    return { tone: "warn", text: `5 V signals: needs a divider on ${name}` };
-  if (bp.logic >= 5 && pinout.tolerates5V === false)
-    return { tone: "warn", text: `3.3 V part: run it from ${name}'s 3.3V pin` };
-  if (
-    pinout.pins.some((p) => p.role === "out-analog" && p.required) &&
-    !bp.pins.some((p) => p.fns?.includes("analog"))
-  )
-    return { tone: "warn", text: `${name} has no analog inputs` };
-  return { tone: "ok", text: `Works with ${name} (${bp.logic} V)` };
+  return signalFit(pinout, bp, name, min);
 }
 
 function projectText(project?: ProjectContext | null) {
@@ -239,16 +238,17 @@ function projectText(project?: ProjectContext | null) {
 
 /** Edit distance, for "did you mean". */
 function distance(a: string, b: string) {
-  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
-  for (let j = 1; j <= b.length; j++) dp[0][j] = j;
-  for (let i = 1; i <= a.length; i++)
-    for (let j = 1; j <= b.length; j++)
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
-      );
-  return dp[a.length][b.length];
+  // One row at a time: prev is row i - 1, row is row i.
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      row.push(Math.min((prev[j] ?? 0) + 1, (row[j - 1] ?? 0) + 1, (prev[j - 1] ?? 0) + cost));
+    }
+    prev = row;
+  }
+  return prev[b.length] ?? 0;
 }
 
 function fuzzy(query: string): PartModel[] {
@@ -273,77 +273,74 @@ function fuzzy(query: string): PartModel[] {
     .slice(0, 5);
 }
 
-export function suggest(
-  query: string,
+/** What the default suggestions are built from, and the list they go into. */
+interface Suggesting {
+  nodes: LabNode[];
+  project?: ProjectContext | null;
+  onCanvas: Set<string>;
+  hasBoard: boolean;
+  text: string;
+  list: Suggestion[];
+  add: (partId: string, reason: string, source: Suggestion["source"]) => void;
+}
+
+const firstSentence = (part: PartModel) => part.summary.split(". ")[0] ?? "";
+
+/** What a typed query finds, or the near spellings when it finds nothing. */
+function searched(
+  q: string,
   nodes: LabNode[],
-  project?: ProjectContext | null,
-  limit = 8,
+  limit: number,
 ): { items: Suggestion[]; didYouMean: boolean } {
-  const q = query.trim();
-  const onCanvas = new Set(nodes.map((n) => n.partId));
-  const hasBoard = boardsOn(nodes).length > 0;
-  const add = (
-    list: Suggestion[],
-    partId: string,
-    reason: string,
-    source: Suggestion["source"],
-  ) => {
-    const part = getPart(partId);
-    if (!part || list.some((s) => s.part.id === partId)) return;
-    list.push({ part, reason, source, fit: fitFor(partId, nodes) });
+  const found = searchParts(q);
+  if (found.length) {
+    const items = found.map<Suggestion>((part) => ({
+      part,
+      reason: firstSentence(part),
+      source: "search",
+      fit: fitFor(part.id, nodes),
+    }));
+    // Parts that fit the board first, keeping search order otherwise.
+    items.sort((a, b) => (a.fit?.tone === "warn" ? 1 : 0) - (b.fit?.tone === "warn" ? 1 : 0));
+    return { items: items.slice(0, limit), didYouMean: false };
+  }
+  return {
+    items: fuzzy(q).map((part) => ({
+      part,
+      reason: firstSentence(part),
+      source: "fuzzy" as const,
+      fit: fitFor(part.id, nodes),
+    })),
+    didYouMean: true,
   };
+}
 
-  if (q) {
-    const found = searchParts(q);
-    if (found.length) {
-      const items = found.map<Suggestion>((part) => ({
-        part,
-        reason: part.summary.split(". ")[0],
-        source: "search",
-        fit: fitFor(part.id, nodes),
-      }));
-      // Parts that fit the board first, keeping search order otherwise.
-      items.sort((a, b) => (a.fit?.tone === "warn" ? 1 : 0) - (b.fit?.tone === "warn" ? 1 : 0));
-      return { items: items.slice(0, limit), didYouMean: false };
-    }
-    return {
-      items: fuzzy(q).map((part) => ({
-        part,
-        reason: part.summary.split(". ")[0],
-        source: "fuzzy" as const,
-        fit: fitFor(part.id, nodes),
-      })),
-      didYouMean: true,
-    };
-  }
+/** No board yet: one that suits the project first. */
+function suggestBoards({ hasBoard, text, add }: Suggesting) {
+  if (hasBoard) return;
+  const wantsWifi = /\b(wi-?fi|iot|internet|cloud|online|mqtt|web)/i.test(text);
+  const wantsLinux = /\b(camera|vision|linux|python|ai|server)/i.test(text);
+  if (wantsWifi) add("esp32", "Start with a board: Wi-Fi for your IoT project", "missing");
+  if (wantsLinux)
+    add("raspberry-pi-4", "Start with a board: Linux and Python for your project", "missing");
+  add("arduino-uno", "Start with a board: everything else connects to it", "missing");
+  add("esp32", "Start with a board: Wi-Fi and Bluetooth built in", "missing");
+}
 
-  const list: Suggestion[] = [];
-  const text = projectText(project);
-
-  if (!hasBoard) {
-    const wantsWifi = /\b(wi-?fi|iot|internet|cloud|online|mqtt|web)/i.test(text);
-    const wantsLinux = /\b(camera|vision|linux|python|ai|server)/i.test(text);
-    if (wantsWifi) add(list, "esp32", "Start with a board: Wi-Fi for your IoT project", "missing");
-    if (wantsLinux)
-      add(
-        list,
-        "raspberry-pi-4",
-        "Start with a board: Linux and Python for your project",
-        "missing",
-      );
-    add(list, "arduino-uno", "Start with a board: everything else connects to it", "missing");
-    add(list, "esp32", "Start with a board: Wi-Fi and Bluetooth built in", "missing");
-  }
-
-  // The project's own hardware list comes first: it's what the person said they need.
+/** The project's own hardware list comes first: it's what the person said they need. */
+function suggestHardware({ project, onCanvas, hasBoard, add }: Suggesting) {
   for (const item of project?.hardware ?? []) {
     const match = searchParts(item)[0];
     if (match && !onCanvas.has(match.id) && !(getPinout(match.id).controller && hasBoard))
-      add(list, match.id, `On your project's hardware list (“${item}”)`, "project");
+      add(match.id, `On your project's hardware list (“${item}”)`, "project");
   }
+}
 
-  // Then what the brief talks about, most-mentioned first. One part per need:
-  // once the canvas has a temperature sensor, don't offer three more.
+/**
+ * Then what the brief talks about, most-mentioned first. One part per need:
+ * once the canvas has a temperature sensor, don't offer three more.
+ */
+function suggestIntents({ text, onCanvas, hasBoard, project, add }: Suggesting) {
   const scored = INTENTS.map((intent) => ({
     intent,
     hits: text ? (text.match(new RegExp(intent.words.source, "gi")) ?? []).length : 0,
@@ -353,35 +350,32 @@ export function suggest(
   for (const { intent } of scored) {
     if (intent.parts.some((id) => onCanvas.has(id))) continue;
     const pick = intent.parts.find((id) => !(getPinout(id).controller && hasBoard));
-    if (pick) add(list, pick, `${intent.why}, for “${project?.name ?? "your project"}”`, "project");
+    if (pick) add(pick, `${intent.why}, for “${project?.name ?? "your project"}”`, "project");
   }
+}
 
+/** A breadboard for shared supply, the parts that go with what's on the canvas, a display for readings. */
+function suggestPairs({ nodes, onCanvas, hasBoard, add }: Suggesting) {
   // Several parts each wanting 5 V and GND: the board has one 5 V pin, a breadboard rail has 25 holes.
   const powered = nodes.filter((n) =>
     getPinout(n.partId).pins.some((p) => p.role === "vcc"),
   ).length;
   if (hasBoard && powered >= 2 && ![...onCanvas].some((id) => id.startsWith("breadboard")))
-    add(
-      list,
-      "breadboard",
-      `${powered} parts need 5 V and GND: feed them from a power rail`,
-      "missing",
-    );
+    add("breadboard", `${powered} parts need 5 V and GND: feed them from a power rail`, "missing");
 
   for (const node of nodes) {
     for (const pair of PAIRS[node.partId] ?? [])
-      if (!onCanvas.has(pair.part))
-        add(list, pair.part, `${pair.why} with your ${node.label}`, "pairs");
+      if (!onCanvas.has(pair.part)) add(pair.part, `${pair.why} with your ${node.label}`, "pairs");
   }
 
   const hasSensor = nodes.some((n) => getPart(n.partId)?.group === "sensors");
   const hasDisplay = nodes.some((n) => getPart(n.partId)?.group === "displays");
-  if (hasSensor && !hasDisplay)
-    add(list, "oled-ssd1306", "Show your readings on the device", "pairs");
-  if (hasBoard && nodes.length === 1)
-    add(list, "led", "The first experiment: make it blink", "pairs");
+  if (hasSensor && !hasDisplay) add("oled-ssd1306", "Show your readings on the device", "pairs");
+  if (hasBoard && nodes.length === 1) add("led", "The first experiment: make it blink", "pairs");
+}
 
-  // Popular parts, minus ones whose job something on the canvas already does.
+/** Popular parts, minus ones whose job something on the canvas already does. */
+function suggestPopular({ onCanvas, hasBoard, list, add }: Suggesting) {
   const covered = (id: string) =>
     INTENTS.some(
       (intent) =>
@@ -392,7 +386,36 @@ export function suggest(
     );
   for (const id of POPULAR) {
     if (onCanvas.has(id) || (getPinout(id).controller && hasBoard) || covered(id)) continue;
-    add(list, id, "Popular in Kiungo builds", "popular");
+    add(id, "Popular in Kiungo builds", "popular");
   }
+}
+
+export function suggest(
+  query: string,
+  nodes: LabNode[],
+  project?: ProjectContext | null,
+  limit = 8,
+): { items: Suggestion[]; didYouMean: boolean } {
+  const q = query.trim();
+  if (q) return searched(q, nodes, limit);
+  const list: Suggestion[] = [];
+  const ctx: Suggesting = {
+    nodes,
+    project,
+    onCanvas: new Set(nodes.map((n) => n.partId)),
+    hasBoard: boardsOn(nodes).length > 0,
+    text: projectText(project),
+    list,
+    add: (partId, reason, source) => {
+      const part = getPart(partId);
+      if (!part || list.some((s) => s.part.id === partId)) return;
+      list.push({ part, reason, source, fit: fitFor(partId, nodes) });
+    },
+  };
+  suggestBoards(ctx);
+  suggestHardware(ctx);
+  suggestIntents(ctx);
+  suggestPairs(ctx);
+  suggestPopular(ctx);
   return { items: list.slice(0, limit), didYouMean: false };
 }

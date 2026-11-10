@@ -58,6 +58,69 @@ export const isVirtual = (node: LabNode) => node.mode === "virtual";
 export const boardIsReal = (node: LabNode | undefined) =>
   node?.mode === "physical" || node?.mode === "hybrid";
 
+/** A virtual sensor on the Hybrid board: where its pins are, and how to bind one. */
+interface Binder {
+  node: LabNode;
+  /** The Arduino pin number a part pin is wired to on the Hybrid board. */
+  pinOf: (pin: string) => number | null;
+  add: (
+    inputId: string,
+    binding: Binding,
+    part: string,
+    adapter?: VirtualSensor["adapter"] | "DHT",
+  ) => void;
+}
+
+function bindHcSr04({ node, pinOf, add }: Binder) {
+  const trig = pinOf("TRIG");
+  const echo = pinOf("ECHO");
+  if (trig !== null) add(node.id, { kind: "distance-cm", pin: trig }, "hc-sr04", "NewPing");
+  if (echo !== null) add(node.id, { kind: "echo-us", pin: echo }, "hc-sr04");
+}
+
+function bindDht({ node, pinOf, add }: Binder) {
+  const pin = pinOf("DATA");
+  if (pin !== null)
+    add(
+      node.id,
+      { kind: "dht", pin, model: node.partId === "dht11" ? 11 : 22 },
+      node.partId,
+      "DHT",
+    );
+}
+
+function bindPir({ node, pinOf, add }: Binder) {
+  const pin = pinOf("OUT");
+  if (pin !== null) add(node.id, { kind: "digital", pin }, "pir");
+}
+
+function bindLdr({ node, pinOf, add }: Binder) {
+  const pin = pinOf("L2");
+  if (pin !== null && pin >= 14) add(node.id, { kind: "analog", pin }, "ldr");
+}
+
+/** Soil moisture and MQ-2: an analog A0 and a threshold D0. */
+function bindAnalogAndThreshold({ node, pinOf, add }: Binder) {
+  const a = pinOf("A0");
+  const d = pinOf("D0");
+  if (a !== null && a >= 14) add(`${node.id}:A0`, { kind: "analog", pin: a }, node.partId);
+  if (d !== null) add(`${node.id}:D0`, { kind: "digital", pin: d }, node.partId);
+}
+
+const BINDERS = new Map<string, (b: Binder) => void>([
+  ["hc-sr04", bindHcSr04],
+  ["dht11", bindDht],
+  ["dht22", bindDht],
+  ["am2302", bindDht],
+  ["pir", bindPir],
+  ["ldr", bindLdr],
+  ["soil-moisture", bindAnalogAndThreshold],
+  ["mq2", bindAnalogAndThreshold],
+]);
+
+/** Sensors on a bus the Hybrid shim doesn't carry yet. */
+const NOT_IN_SHIM = new Set(["ds18b20", "mpu6050", "bmp280"]);
+
 /**
  * The bindings for a Hybrid run of `boardId`. Throws when there are more
  * virtual sensor pins than the runtime's table holds.
@@ -97,70 +160,42 @@ export function hybridBindings(
     if (node.id === boardId) continue;
     const report = analysis.nodes[node.id];
     if (!report?.links.some((l) => l.board === boardId)) continue;
-    if (!isVirtual(node)) {
+    const bind = BINDERS.get(node.partId);
+    if (isVirtual(node) && bind) {
+      bind({
+        node,
+        pinOf: (pin) => {
+          const l = report.links.find((x) => x.pin === pin && x.board === boardId);
+          return l ? arduinoPinOf(l.boardPin) : null;
+        },
+        add: (...args) => add(node, ...args),
+      });
+    } else if (isVirtual(node) && NOT_IN_SHIM.has(node.partId)) {
+      unsupported.push({
+        node,
+        why: `Kiungo can't play a virtual ${node.label} on a real board yet: its bus isn't in the Hybrid shim. Mark it Physical and wire the real one.`,
+      });
+    } else {
+      // Outputs are always real in a Hybrid run: the board drives what's on the desk, and the lab mirrors it.
       physical.push(node);
-      continue;
-    }
-    const pinOf = (pin: string) => {
-      const l = report.links.find((x) => x.pin === pin && x.board === boardId);
-      return l ? arduinoPinOf(l.boardPin) : null;
-    };
-    switch (node.partId) {
-      case "hc-sr04": {
-        const trig = pinOf("TRIG");
-        const echo = pinOf("ECHO");
-        if (trig !== null)
-          add(node, node.id, { kind: "distance-cm", pin: trig }, "hc-sr04", "NewPing");
-        if (echo !== null) add(node, node.id, { kind: "echo-us", pin: echo }, "hc-sr04");
-        break;
-      }
-      case "dht11":
-      case "dht22":
-      case "am2302": {
-        const pin = pinOf("DATA");
-        if (pin !== null)
-          add(
-            node,
-            node.id,
-            { kind: "dht", pin, model: node.partId === "dht11" ? 11 : 22 },
-            node.partId,
-            "DHT",
-          );
-        break;
-      }
-      case "pir": {
-        const pin = pinOf("OUT");
-        if (pin !== null) add(node, node.id, { kind: "digital", pin }, "pir");
-        break;
-      }
-      case "ldr": {
-        const pin = pinOf("L2");
-        if (pin !== null && pin >= 14) add(node, node.id, { kind: "analog", pin }, "ldr");
-        break;
-      }
-      case "soil-moisture":
-      case "mq2": {
-        const a = pinOf("A0");
-        const d = pinOf("D0");
-        if (a !== null && a >= 14)
-          add(node, `${node.id}:A0`, { kind: "analog", pin: a }, node.partId);
-        if (d !== null) add(node, `${node.id}:D0`, { kind: "digital", pin: d }, node.partId);
-        break;
-      }
-      case "ds18b20":
-      case "mpu6050":
-      case "bmp280":
-        unsupported.push({
-          node,
-          why: `Kiungo can't play a virtual ${node.label} on a real board yet: its bus isn't in the Hybrid shim. Mark it Physical and wire the real one.`,
-        });
-        break;
-      default:
-        // Outputs are always real in a Hybrid run: the board drives what's on the desk, and the lab mirrors it.
-        physical.push(node);
     }
   }
   return { plan: { board: fqbn, sensors: shimSensors }, sensors, unsupported, physical };
+}
+
+const outOfRange = (cm: number) => cm < HC_SR04_RANGE_CM.min || cm > HC_SR04_RANGE_CM.max;
+
+/** The value a binding takes from the lab's reading, or null when the reading isn't for it. */
+function valueFor(b: Binding, input: PeripheralInput, logicV: number): number | null {
+  if (b.kind === "distance-cm" && input.kind === "hc-sr04")
+    return outOfRange(input.distanceCm) ? 0 : Math.round(input.distanceCm);
+  if (b.kind === "echo-us" && input.kind === "hc-sr04")
+    return outOfRange(input.distanceCm) ? 38_000 : Math.round(input.distanceCm * ECHO_US_PER_CM);
+  if (b.kind === "dht" && input.kind === "dht") return packDht(input.temperatureC, input.humidity);
+  if (b.kind === "digital" && input.kind === "digital") return input.high ? 1 : 0;
+  if (b.kind === "analog" && input.kind === "analog")
+    return Math.max(0, Math.min(1023, Math.round((input.volts / logicV) * 1023)));
+  return null;
 }
 
 /** The values to push for the lab's current sensor readings: [sensor id, value] pairs (SET frames). */
@@ -173,38 +208,8 @@ export function hybridValues(
   const out: Array<[number, number]> = [];
   for (const s of bindings.sensors) {
     const input = byId.get(s.inputId);
-    if (!input) continue;
-    const b = s.binding;
-    switch (b.kind) {
-      case "distance-cm":
-        if (input.kind === "hc-sr04")
-          out.push([
-            s.id,
-            input.distanceCm < HC_SR04_RANGE_CM.min || input.distanceCm > HC_SR04_RANGE_CM.max
-              ? 0
-              : Math.round(input.distanceCm),
-          ]);
-        break;
-      case "echo-us":
-        if (input.kind === "hc-sr04")
-          out.push([
-            s.id,
-            input.distanceCm < HC_SR04_RANGE_CM.min || input.distanceCm > HC_SR04_RANGE_CM.max
-              ? 38_000
-              : Math.round(input.distanceCm * ECHO_US_PER_CM),
-          ]);
-        break;
-      case "dht":
-        if (input.kind === "dht") out.push([s.id, packDht(input.temperatureC, input.humidity)]);
-        break;
-      case "digital":
-        if (input.kind === "digital") out.push([s.id, input.high ? 1 : 0]);
-        break;
-      case "analog":
-        if (input.kind === "analog")
-          out.push([s.id, Math.max(0, Math.min(1023, Math.round((input.volts / logicV) * 1023)))]);
-        break;
-    }
+    const value = input ? valueFor(s.binding, input, logicV) : null;
+    if (value !== null) out.push([s.id, value]);
   }
   return out;
 }
@@ -218,6 +223,20 @@ export function packDht(temperatureC: number, humidity: number): number {
 
 const PART_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const ADAPTERS = new Set(["NewPing", "DHT"]);
+
+/** One sensor of a plan from the interface, or why it was refused. */
+function planSensor(s: unknown): VirtualSensor | string {
+  if (!s || typeof s !== "object") return "Refused: that isn't a Hybrid plan.";
+  const { id, part, adapter, pins } = s as VirtualSensor;
+  if (typeof part !== "string" || !PART_ID.test(part))
+    return "Refused: a part in the plan has an unknown id.";
+  if (adapter !== undefined && !ADAPTERS.has(adapter))
+    return "Refused: a part in the plan asks for an unknown adapter.";
+  if (!Array.isArray(pins) || pins.length > 4 || !pins.every((p) => Number.isInteger(p)))
+    return "Refused: a part in the plan has bad pins.";
+  if (!Number.isInteger(id)) return "Refused: a part in the plan has a bad id.";
+  return { id, part, pins: [...pins], ...(adapter ? { adapter } : {}) };
+}
 
 /**
  * A plan from the interface, checked before it reaches the generated header:
@@ -236,16 +255,9 @@ export function parsePlan(
     return refused(`A Hybrid run can play up to ${MAX_SENSORS} virtual sensor pins.`);
   const sensors: VirtualSensor[] = [];
   for (const s of raw as unknown[]) {
-    if (!s || typeof s !== "object") return refused("Refused: that isn't a Hybrid plan.");
-    const { id, part, adapter, pins } = s as VirtualSensor;
-    if (typeof part !== "string" || !PART_ID.test(part))
-      return refused("Refused: a part in the plan has an unknown id.");
-    if (adapter !== undefined && !ADAPTERS.has(adapter))
-      return refused("Refused: a part in the plan asks for an unknown adapter.");
-    if (!Array.isArray(pins) || pins.length > 4 || !pins.every((p) => Number.isInteger(p)))
-      return refused("Refused: a part in the plan has bad pins.");
-    if (!Number.isInteger(id)) return refused("Refused: a part in the plan has a bad id.");
-    sensors.push({ id, part, pins: [...pins], ...(adapter ? { adapter } : {}) });
+    const sensor = planSensor(s);
+    if (typeof sensor === "string") return refused(sensor);
+    sensors.push(sensor);
   }
   const plan: HybridPlan = { board: fqbn, sensors };
   try {

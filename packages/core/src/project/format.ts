@@ -231,8 +231,10 @@ export function parseHistory(input: string): HistoryFile | null {
 
 /** A folder name for a project: the name, minus characters Windows, macOS or Linux refuse. */
 export function folderNameFor(name: string): string {
-  const clean = name
-    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ")
+  // Characters below 0x20 (control characters) are refused too.
+  const clean = Array.from(name, (c) => (c.charCodeAt(0) < 0x20 ? " " : c))
+    .join("")
+    .replace(/[<>:"/\\|?*]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/[. ]+$/, "");

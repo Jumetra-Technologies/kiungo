@@ -3,6 +3,10 @@ node_modules
 dist
 out
 build
+# Kiungo's build tooling is source, not output.
+!packages/core/src/build/
 release
 coverage
 firmware
+# Kiungo's firmware helpers in core are TypeScript source.
+!packages/core/src/firmware/

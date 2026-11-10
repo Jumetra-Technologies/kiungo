@@ -27,30 +27,34 @@ const BUS_NAME = {
   power: "a shared supply",
 } as const;
 
-export function describeChanges(prev: Analysis | null, next: Analysis, nodes: LabNode[]): Draft[] {
-  if (!prev) return [];
-  const drafts: Draft[] = [];
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const label = (id: string) => byId.get(id)?.label ?? "a part";
+type Label = (id: string) => string;
 
+/** Parts that just became ready, and the board pin each is on. */
+function readyDrafts(prev: Analysis, next: Analysis, nodes: LabNode[], label: Label): Draft[] {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const drafts: Draft[] = [];
   for (const node of nodes) {
     const before = prev.nodes[node.id]?.status;
     const after = next.nodes[node.id]?.status;
     if (!after || before === after || getPinout(node.partId).controller) continue;
-    if (after === "ready") {
-      const report = next.nodes[node.id];
-      const link = report.links.find((l) => !["vcc", "gnd"].includes(l.role));
-      const via = link
-        ? ` on ${label(link.board)} ${getPinout(byId.get(link.board)!.partId).pins.find((p) => p.id === link.boardPin)?.label ?? link.boardPin}`
-        : "";
-      drafts.push({
-        kind: "state",
-        text: `${node.label} is wired and powered${via}`,
-        nodes: [node.id],
-      });
-    }
+    if (after !== "ready") continue;
+    const report = next.nodes[node.id];
+    const link = report?.links.find((l) => !["vcc", "gnd"].includes(l.role));
+    const via = link
+      ? ` on ${label(link.board)} ${getPinout(byId.get(link.board)!.partId).pins.find((p) => p.id === link.boardPin)?.label ?? link.boardPin}`
+      : "";
+    drafts.push({
+      kind: "state",
+      text: `${node.label} is wired and powered${via}`,
+      nodes: [node.id],
+    });
   }
+  return drafts;
+}
 
+/** Board-to-board links that are new. */
+function linkDrafts(prev: Analysis, next: Analysis, label: Label): Draft[] {
+  const drafts: Draft[] = [];
   const seen = new Set(prev.boardLinks.map((l) => [l.a, l.b].sort().join("|") + l.bus));
   const announced = new Set<string>();
   for (const link of next.boardLinks) {
@@ -63,7 +67,13 @@ export function describeChanges(prev: Analysis | null, next: Analysis, nodes: La
       nodes: [link.a, link.b],
     });
   }
+  return drafts;
+}
 
+/** Faults found, and faults fixed (not ones that went away with their part). */
+function faultDrafts(prev: Analysis, next: Analysis, nodes: LabNode[], label: Label): Draft[] {
+  const ids = new Set(nodes.map((n) => n.id));
+  const drafts: Draft[] = [];
   const before = new Map(prev.faults.filter((f) => f.severity !== "tip").map((f) => [f.id, f]));
   const after = new Map(next.faults.filter((f) => f.severity !== "tip").map((f) => [f.id, f]));
   for (const [id, f] of after) {
@@ -76,7 +86,7 @@ export function describeChanges(prev: Analysis | null, next: Analysis, nodes: La
   }
   for (const [id, f] of before) {
     // A fault on a part that was removed isn't "fixed".
-    if (!after.has(id) && f.nodes.every((n) => byId.has(n)))
+    if (!after.has(id) && f.nodes.every((n) => ids.has(n)))
       drafts.push({
         kind: "fix",
         text: `Fixed on ${f.nodes.map(label).join(", ")}: ${f.title}`,
@@ -84,6 +94,17 @@ export function describeChanges(prev: Analysis | null, next: Analysis, nodes: La
       });
   }
   return drafts;
+}
+
+export function describeChanges(prev: Analysis | null, next: Analysis, nodes: LabNode[]): Draft[] {
+  if (!prev) return [];
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const label = (id: string) => byId.get(id)?.label ?? "a part";
+  return [
+    ...readyDrafts(prev, next, nodes, label),
+    ...linkDrafts(prev, next, label),
+    ...faultDrafts(prev, next, nodes, label),
+  ];
 }
 
 interface Track {
@@ -98,8 +119,18 @@ interface Track {
 
 const numberOf = (value: string): { n: number; unit: string } | null => {
   const m = value.match(/(-?\d+(?:\.\d+)?)\s*(.*)$/);
-  return m ? { n: Number(m[1]), unit: m[2].trim() } : null;
+  return m ? { n: Number(m[1]), unit: (m[2] ?? "").trim() } : null;
 };
+
+/** Widen a part's range with a numeric reading. */
+function recordReading(track: Track, reading: { label: string; value: string }) {
+  const num = numberOf(reading.value);
+  if (!num) return;
+  track.min = Math.min(track.min, num.n);
+  track.max = Math.max(track.max, num.n);
+  track.unit = num.unit;
+  track.readingLabel = reading.label;
+}
 
 /** Records one run of the simulation and writes it up. */
 export class RunRecorder {
@@ -118,52 +149,53 @@ export class RunRecorder {
     this.nodes = nodes;
   }
 
+  private trackOf(nodeId: string): Track {
+    let track = this.tracks.get(nodeId);
+    if (!track) {
+      track = {
+        on: false,
+        firstOnLogged: false,
+        toggles: 0,
+        min: Infinity,
+        max: -Infinity,
+        unit: "",
+        readingLabel: "",
+      };
+      this.tracks.set(nodeId, track);
+    }
+    return track;
+  }
+
+  /** " (Arduino Uno D13)": the board pin a part's signal is on, or nothing. */
+  private boardPinText(node: LabNode, analysis: Analysis): string {
+    const link = analysis.nodes[node.id]?.links.find((l) => !["vcc", "gnd"].includes(l.role));
+    const board = link ? this.nodes.find((n) => n.id === link.board) : undefined;
+    const boardPin =
+      link && board
+        ? getPinout(board.partId).pins.find((p) => p.id === link.boardPin)?.label
+        : undefined;
+    return board && boardPin ? ` (${board.label} ${boardPin})` : "";
+  }
+
   /** Feed a frame; returns log lines for things that happened for the first time. */
   frame(frame: Frame, analysis: Analysis): Draft[] {
     this.lastT = frame.t;
     const drafts: Draft[] = [];
     for (const node of this.nodes) {
       const live = frame.nodes[node.id];
-      if (!live) continue;
-      const controller = getPinout(node.partId).controller;
-      if (controller) continue;
-      let track = this.tracks.get(node.id);
-      if (!track) {
-        track = {
-          on: false,
-          firstOnLogged: false,
-          toggles: 0,
-          min: Infinity,
-          max: -Infinity,
-          unit: "",
-          readingLabel: "",
-        };
-        this.tracks.set(node.id, track);
-      }
+      if (!live || getPinout(node.partId).controller) continue;
+      const track = this.trackOf(node.id);
       if (live.on !== track.on) {
         if (live.on) track.toggles += 1;
         track.on = live.on;
       }
       const reading = live.readings[0];
-      const num = reading ? numberOf(reading.value) : null;
-      if (num) {
-        track.min = Math.min(track.min, num.n);
-        track.max = Math.max(track.max, num.n);
-        track.unit = num.unit;
-        track.readingLabel = reading!.label;
-      }
+      if (reading) recordReading(track, reading);
       if (live.on && !track.firstOnLogged) {
         track.firstOnLogged = true;
-        const link = analysis.nodes[node.id]?.links.find((l) => !["vcc", "gnd"].includes(l.role));
-        const board = link ? this.nodes.find((n) => n.id === link.board) : undefined;
-        const boardPin =
-          link && board
-            ? getPinout(board.partId).pins.find((p) => p.id === link.boardPin)?.label
-            : undefined;
-        const via = board && boardPin ? ` (${board.label} ${boardPin})` : "";
         drafts.push({
           kind: "run",
-          text: firstOnText(node, live.badge, reading?.value) + via,
+          text: firstOnText(node, live.badge, reading?.value) + this.boardPinText(node, analysis),
           nodes: [node.id],
         });
       }
@@ -205,35 +237,33 @@ function toggleVerb(partId: string) {
   return "switched on";
 }
 
+type FirstOn = (label: string, badge?: string, value?: string) => string;
+
+const showsText: FirstOn = (label, _badge, value) => `${label} shows “${value ?? "text"}”`;
+const comesUp: FirstOn = (label, badge, value) =>
+  `${label} comes up: ${value ?? badge ?? "radio on"}`;
+
+const FIRST_ON = new Map<string, FirstOn>([
+  ["led", (label) => `${label} flashes on`],
+  ["rgb-led", (label) => `${label} starts fading through colors`],
+  ["buzzer", (label) => `${label} beeps`],
+  ["relay", (label) => `${label} clicks: COM switches to NO`],
+  ["servo", (label, badge) => `${label} moves to ${badge ?? "its angle"}`],
+  ["dc-motor", (label, badge) => `${label} spins up${badge ? ` to ${badge}` : ""}`],
+  ["stepper-motor", (label) => `${label} starts stepping`],
+  ["pir", (label) => `${label} sees motion`],
+  ["lcd-16x2", showsText],
+  ["oled-ssd1306", showsText],
+  ["tft-display", showsText],
+  ["hc-05", comesUp],
+  ["wifi-module", comesUp],
+  ["nrf24l01", comesUp],
+  ["lora", comesUp],
+]);
+
 function firstOnText(node: LabNode, badge?: string, value?: string): string {
-  switch (node.partId) {
-    case "led":
-      return `${node.label} flashes on`;
-    case "rgb-led":
-      return `${node.label} starts fading through colors`;
-    case "buzzer":
-      return `${node.label} beeps`;
-    case "relay":
-      return `${node.label} clicks: COM switches to NO`;
-    case "servo":
-      return `${node.label} moves to ${badge ?? "its angle"}`;
-    case "dc-motor":
-      return `${node.label} spins up${badge ? ` to ${badge}` : ""}`;
-    case "stepper-motor":
-      return `${node.label} starts stepping`;
-    case "pir":
-      return `${node.label} sees motion`;
-    case "lcd-16x2":
-    case "oled-ssd1306":
-    case "tft-display":
-      return `${node.label} shows “${value ?? "text"}”`;
-    case "hc-05":
-    case "wifi-module":
-    case "nrf24l01":
-    case "lora":
-      return `${node.label} comes up: ${value ?? badge ?? "radio on"}`;
-    default:
-      if (value) return `${node.label} reads ${value}`;
-      return `${node.label} is ${badge?.toLowerCase() ?? "running"}`;
-  }
+  const text = FIRST_ON.get(node.partId);
+  if (text) return text(node.label, badge, value);
+  if (value) return `${node.label} reads ${value}`;
+  return `${node.label} is ${badge?.toLowerCase() ?? "running"}`;
 }

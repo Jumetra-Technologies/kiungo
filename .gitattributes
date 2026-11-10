@@ -1,0 +1,2 @@
+# Compiler output and sketches used as test fixtures: byte-exact on every system.
+packages/core/test/fixtures/** -text

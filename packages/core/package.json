@@ -1,0 +1,40 @@
+{
+  "name": "@kiungo/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Kiungo engine shared by the website and the desktop app: parts, the lab model, firmware files and the board emulator.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./parts": "./src/parts/index.ts",
+    "./parts/*": "./src/parts/*.ts",
+    "./lab/*": "./src/lab/*.ts",
+    "./firmware/*": "./src/firmware/*.ts",
+    "./emulator": "./src/emulator/index.ts",
+    "./emulator/*": "./src/emulator/*.ts",
+    "./sim/*": "./src/sim/*.ts",
+    "./boards": "./src/boards/index.ts",
+    "./hybrid/*": "./src/hybrid/*.ts",
+    "./project": "./src/project/index.ts",
+    "./project/*": "./src/project/*.ts",
+    "./build": "./src/build/index.ts",
+    "./build/*": "./src/build/*.ts",
+    "./hardware/*": "./src/hardware/*.ts",
+    "./world/*": "./src/world/*.ts"
+  },
+  "dependencies": {
+    "@dimforge/rapier2d-compat": "0.21.0",
+    "@xyflow/system": "0.0.80",
+    "avr8js": "0.21.1"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "@vitest/coverage-v8": "4.1.11",
+    "vitest": "4.1.11"
+  }
+}

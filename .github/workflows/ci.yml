@@ -1,40 +1,185 @@
 name: CI
 
+# Every pull request and every push to main.
+#   Quality gate: types, lint and every test on Ubuntu. Its name is the check the
+#                 "Protect main" ruleset requires (.github/rulesets/main-protection.json).
+#   desktop:      types, tests, a real Arduino CLI compile and an unsigned
+#                 installer on Windows, Ubuntu and macOS.
+# A red check means the change isn't ready to merge.
 on:
   pull_request:
-    branches: [main]
   push:
     branches: [main]
   merge_group:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
+env:
+  # The gate never starts Electron, so it never needs the binary.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
 jobs:
-  # The job name below ("Quality gate") is the required status check referenced by the
-  # branch ruleset. Keep them in sync.
   quality-gate:
     name: Quality gate
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: pnpm
-      - name: Install native tools used by the gate
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build the desktop bundles
+        run: npm run build
+
+  desktop:
+    name: Desktop · ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows
+            builder: --win
+          - os: ubuntu-latest
+            label: Ubuntu
+            builder: --linux
+            # The ESP32 board package is large: one system builds for it.
+            esp32: "1"
+          - os: macos-latest
+            label: macOS
+            builder: --mac
+    env:
+      # The desktop jobs do need Electron: electron-builder packs it.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "0"
+      # Unsigned builds everywhere until signing lands (sprint 6).
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      KIUNGO_ARDUINO_CONFIG: ${{ github.workspace }}/.ci/arduino-cli.yaml
+      # Electron and electron-builder's tools come from GitHub releases, which answer 504 now and
+      # then (5 Nov 2026, #88 and #89): kept between runs, so most runs download none of them.
+      ELECTRON_CACHE: ${{ github.workspace }}/.ci/electron
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.ci/electron-builder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Cache Electron, electron-builder's tools and the Arduino CLI
+        uses: actions/cache@v4
+        with:
+          path: |
+            .ci/electron
+            .ci/electron-builder
+            apps/desktop/resources/bin
+          key: desktop-downloads-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/desktop/package.json', 'apps/desktop/scripts/fetch-arduino-cli.mjs') }}
+          restore-keys: desktop-downloads-${{ runner.os }}-${{ runner.arch }}-
+      - name: Linux packaging tools (rpm target)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -y -q rpm
+      - run: npm ci
+
+      - name: Typecheck the desktop app
+        run: npm run typecheck -w @kiungo/desktop
+
+      - name: Fetch the pinned Arduino CLI for this system
+        run: npm run fetch:arduino-cli -w @kiungo/desktop
+
+      - name: Resolve the Arduino CLI path
+        id: cli
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends cppcheck clang-format shellcheck
-          python3 -m pip install --user ruff
-      - run: pnpm install --frozen-lockfile
-      - name: Gate self-tests
-        run: pnpm qc:selftest
-      - name: Quality gate (every file, every language)
-        run: pnpm qc --all --strict-tools --format github
+          case "${{ runner.os }}" in
+            Windows) key=win32-x64; exe=arduino-cli.exe ;;
+            Linux)   key=linux-x64; exe=arduino-cli ;;
+            macOS)   key=darwin-$([ "$(uname -m)" = arm64 ] && echo arm64 || echo x64); exe=arduino-cli ;;
+          esac
+          echo "path=$GITHUB_WORKSPACE/apps/desktop/resources/bin/$key/$exe" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the Arduino AVR core
+        uses: actions/cache@v4
+        with:
+          path: .ci/arduino
+          key: arduino-avr-1.8.6-profiles-${{ matrix.esp32 && 'esp32-3.3.12-' || '' }}${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install the Uno core (arduino:avr@1.8.6)
+        shell: bash
+        env:
+          CLI: ${{ steps.cli.outputs.path }}
+        run: |
+          mkdir -p .ci/arduino/data .ci/arduino/downloads .ci/arduino/sketchbook
+          cat > .ci/arduino-cli.yaml <<CFG
+          directories:
+            data: $GITHUB_WORKSPACE/.ci/arduino/data
+            downloads: $GITHUB_WORKSPACE/.ci/arduino/downloads
+            user: $GITHUB_WORKSPACE/.ci/arduino/sketchbook
+          CFG
+          "$CLI" --config-file .ci/arduino-cli.yaml core update-index
+          "$CLI" --config-file .ci/arduino-cli.yaml core install arduino:avr@1.8.6
+          "$CLI" --config-file .ci/arduino-cli.yaml lib install NewPing
+          "$CLI" --config-file .ci/arduino-cli.yaml version
+
+      - name: Test the core, api, ui and desktop packages (with the real compile and the Hybrid shim)
+        env:
+          KIUNGO_ARDUINO_CLI: ${{ steps.cli.outputs.path }}
+          # The shim tests compile with avr-gcc directly from the installed core (apps/desktop/test/hybrid-shim.test.ts).
+          KIUNGO_ARDUINO_DATA: ${{ github.workspace }}/.ci/arduino/data
+          KIUNGO_AVR_LIBRARIES: ${{ github.workspace }}/.ci/arduino/sketchbook/libraries
+          KIUNGO_TEST_ESP32: ${{ matrix.esp32 }}
+        shell: bash
+        run: npx vitest run packages apps 2>&1 | tee vitest.log; exit ${PIPESTATUS[0]}
+
+      - name: Report failing tests as annotations
+        if: failure()
+        shell: bash
+        # The failure text as check annotations, readable from the API without downloading the log.
+        # No vitest.log means an earlier step failed: its own error says why.
+        run: |
+          [ -f vitest.log ] || exit 0
+          grep -nE "^ (FAIL|×)|AssertionError|Error:|expected" vitest.log | head -40 | while IFS= read -r line; do
+            printf '::error title=vitest (%s)::%s\n' "${{ matrix.label }}" "${line//$'\r'/}"
+          done
+
+      - name: Build the renderer, preload and main bundles
+        run: npm run build -w @kiungo/desktop
+
+      - name: Package an unsigned installer
+        # electron-builder downloads Electron for each architecture and its own tools: a 5xx from
+        # GitHub there fails the build, so it's tried up to three times.
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          for attempt in 1 2 3; do
+            npx electron-builder ${{ matrix.builder }} --publish never && exit 0
+            [ "$attempt" = 3 ] && exit 1
+            echo "::warning title=Packaging (${{ matrix.label }})::Attempt $attempt failed; trying again in $((attempt * 20)) s."
+            sleep $((attempt * 20))
+          done
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiungo-desktop-${{ matrix.label }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.AppImage
+            apps/desktop/dist/*.deb
+            apps/desktop/dist/*.rpm
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip

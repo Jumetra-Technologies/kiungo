@@ -2,32 +2,42 @@
   "name": "kiungo",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "description": "Kiungo Hybrid Simulation: desktop application monorepo",
-  "packageManager": "pnpm@9.12.0",
+  "description": "Kiungo: the desktop app for building, coding and running robotics projects, and the packages it is built from.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm --filter @kiungo/desktop dev",
-    "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "test": "pnpm -r test",
-    "prepare": "husky || true",
-    "qc": "node scripts/qc/qc.mjs",
-    "qc:all": "node scripts/qc/qc.mjs --all",
-    "qc:selftest": "node --test scripts/qc/__tests__/lint.test.mjs scripts/qc/__tests__/parsers.test.mjs"
+    "dev": "npm run dev -w @kiungo/desktop",
+    "desktop": "npm run dev -w @kiungo/desktop",
+    "build": "npm run build -w @kiungo/desktop",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/desktop",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm test"
   },
   "devDependencies": {
-    "@eslint/js": "^9.14.0",
-    "eslint": "^9.14.0",
-    "husky": "^9.1.6",
-    "prettier": "^3.3.3",
-    "typescript": "^5.6.3",
-    "typescript-eslint": "^8.13.0",
-    "yaml": "^2.6.0"
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.0",
+    "eslint": "^9",
+    "eslint-plugin-react-hooks": "^7",
+    "globals": "^16",
+    "js-yaml": "^4.3.2",
+    "jsdom": "^29.1.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "typescript-eslint": "^8",
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "dompurify": "^3.4.17"
   }
 }

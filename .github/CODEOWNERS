@@ -1,11 +1,10 @@
-# Replace @YOUR-ORG/maintainers with your real GitHub team or usernames.
 # With "Require review from Code Owners" enabled, a PR touching these paths
 # cannot merge until one of these owners approves.
 
 *                           @Okelo123 @wakoTheDev
 
 # Safety-critical and security-sensitive areas need extra eyes
-/firmware/                  @Okelo123 @wakoTheDev
+/apps/desktop/resources/hybrid/  @Okelo123 @wakoTheDev
 /apps/desktop/src/main/     @Okelo123 @wakoTheDev
 /apps/desktop/src/preload/  @Okelo123 @wakoTheDev
 

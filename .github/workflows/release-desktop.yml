@@ -1,0 +1,219 @@
+name: Release the desktop app
+
+# Builds the installers for Windows, Ubuntu and macOS (the same steps as CI) and
+# publishes them as a GitHub release on this repository, which the website's
+# home page offers for download when the backend has no newer release of its own. When the release
+# pipeline's token is set (KIUNGO_RELEASE_TOKEN, Juma), the same manifest is
+# also posted to the backend's POST /releases, which the app's update check and
+# the home page read first.
+#
+# Run it from the Actions tab (Run workflow) on the branch to release, or push
+# a tag desktop-v<version>. The tag is desktop-v<apps/desktop version>; the
+# build fails if that tag already has a release, because releases don't change.
+# The one exception is the republish input, for a publish that went wrong before
+# anyone installed the version: the same version is built again and every file
+# on its release, and the feed, replaced.
+#
+# Signing is not part of this yet: the installers are unsigned, so the release
+# is marked as a pre-release and the notes say what Windows and macOS warn about.
+#
+# In-app updates: each release also refreshes the update feed, the <channel>.yml
+# files on the desktop-feed release that the app checks (beta.yml and
+# beta-linux.yml, plus latest.yml and latest-linux.yml for a stable release; see
+# .github/scripts/desktop-update-feed.mjs). The feed is what every installed copy
+# will download and run, so only this workflow writes it.
+#
+# The app moved here from jumetra-frontend in Nov 2026 (0.14.0). Copies up to
+# 0.13 still check jumetra-frontend's desktop-feed, so the same feed files
+# (naming this repository's installers) go there too, with the
+# LEGACY_FEED_TOKEN secret: a fine-grained token with Contents read and write
+# on jumetra-frontend only. Without it that step fails the release, so no
+# release can quietly leave those copies behind.
+
+on:
+  push:
+    tags: ["desktop-v*"]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Release channel. beta marks the release as a pre-release."
+        type: choice
+        options: [beta, stable]
+        default: beta
+      republish:
+        description: "Replace the installers and feed of a version that already has a release, after a publish that went wrong. Never for a version people have installed."
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build · ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows
+            builder: --win
+          - os: ubuntu-latest
+            label: Ubuntu
+            builder: --linux
+          - os: macos-latest
+            label: macOS
+            builder: --mac
+    env:
+      # Unsigned until signing lands (DSK-80).
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Linux packaging tools (rpm target)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -y -q rpm
+      - run: npm ci
+      - name: Fetch the pinned Arduino CLI for this system
+        run: npm run fetch:arduino-cli -w @kiungo/desktop
+      - name: Build the renderer, preload and main bundles
+        run: npm run build -w @kiungo/desktop
+      - name: Package the installer
+        # The channel goes into the packaged package.json, so the app knows which feed file to follow.
+        # bash on every system: PowerShell splits "-c.extraMetadata…" into -c and a file name.
+        # A 5xx from GitHub while it downloads Electron or its tools is tried again, up to three times.
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          for attempt in 1 2 3; do
+            npx electron-builder ${{ matrix.builder }} --publish never "-c.extraMetadata.kiungo.updateChannel=${{ github.event.inputs.channel || 'beta' }}" && exit 0
+            [ "$attempt" = 3 ] && exit 1
+            echo "::warning title=Packaging (${{ matrix.label }})::Attempt $attempt failed; trying again in $((attempt * 20)) s."
+            sleep $((attempt * 20))
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.label }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.AppImage
+            apps/desktop/dist/*.deb
+            apps/desktop/dist/*.rpm
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip
+            apps/desktop/dist/*.blockmap
+            apps/desktop/dist/latest*.yml
+
+  publish:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-latest
+    # One release at a time writes the update feed, whatever its tag.
+    concurrency:
+      group: desktop-update-feed
+      cancel-in-progress: false
+    timeout-minutes: 15
+    env:
+      # Set as a repository secret by whoever runs the release pipeline (Juma). Empty: the backend step is skipped.
+      KIUNGO_RELEASE_TOKEN: ${{ secrets.KIUNGO_RELEASE_TOKEN }}
+      KIUNGO_API_URL: ${{ vars.KIUNGO_API_URL || 'https://europe-west4-hhipsystemv0.cloudfunctions.net/api' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # The feed script reads and writes YAML with js-yaml; no install scripts (nothing here needs Electron).
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          merge-multiple: true
+          path: dist
+      - name: Name the release
+        id: meta
+        shell: bash
+        run: |
+          version=$(node -p "require('./apps/desktop/package.json').version")
+          channel="${{ github.event.inputs.channel || 'beta' }}"
+          if [[ "${{ github.ref }}" == refs/tags/desktop-v* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+            [[ "$tag" == "desktop-v$version" ]] || { echo "::error::The tag $tag doesn't match apps/desktop version $version."; exit 1; }
+          else
+            tag="desktop-v$version"
+          fi
+          exists=false
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            if [[ "${{ github.event.inputs.republish }}" == "true" ]]; then
+              exists=true
+            else
+              echo "::error::Release $tag already exists. Releases don't change: bump apps/desktop/package.json and publish a new version (or run again with republish, after a publish that went wrong)."
+              exit 1
+            fi
+          fi
+          echo "exists=$exists" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Write the manifest and the notes
+        run: node .github/scripts/desktop-release-manifest.mjs dist "$GITHUB_REPOSITORY" "${{ steps.meta.outputs.tag }}" "${{ steps.meta.outputs.channel }}" release
+      - name: Create the GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          title="Kiungo desktop ${{ steps.meta.outputs.version }}"
+          [[ "${{ steps.meta.outputs.channel }}" == beta ]] && title="$title (beta)" && pre=--prerelease || pre="--prerelease=false"
+          files=(dist/*.exe dist/*.dmg dist/*.AppImage dist/*.deb dist/*.rpm dist/*.blockmap release/kiungo-release.json)
+          if [[ "${{ steps.meta.outputs.exists }}" == "true" ]]; then
+            # Republishing: the same version again, every file replaced.
+            gh release edit "${{ steps.meta.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --title "$title" --notes-file release/notes.md $pre
+            gh release upload "${{ steps.meta.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}"
+          else
+            gh release create "${{ steps.meta.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$title" --notes-file release/notes.md ${pre/--prerelease=false/} "${files[@]}"
+          fi
+      - name: Update the in-app update feed
+        # After the release above, so every installer the feed names is already there to download.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node .github/scripts/desktop-update-feed.mjs dist "$GITHUB_REPOSITORY" "${{ steps.meta.outputs.tag }}" "${{ steps.meta.outputs.channel }}" feed
+          if ! gh release view desktop-feed --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create desktop-feed --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+              --title "Kiungo update feed" --notes "What installed copies of Kiungo check for updates. Nothing to download here: get Kiungo from the newest desktop-v release."
+          fi
+          gh release upload desktop-feed --repo "$GITHUB_REPOSITORY" --clobber feed/*.yml
+      - name: Update the feed copies up to 0.13 still read (jumetra-frontend)
+        # After this repository's own feed, so both name installers that are already up.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.LEGACY_FEED_TOKEN }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::LEGACY_FEED_TOKEN isn't set: installed copies up to 0.13 would never see this release. The release itself is up; set the secret and run again with republish."
+            exit 1
+          fi
+          gh release upload desktop-feed --repo Jumetra-Technologies/jumetra-frontend --clobber feed/*.yml
+      - name: Tell the backend
+        # Only when the release pipeline's token is configured (Juma): the backend's
+        # /releases is what the app's update check and the home page read first.
+        if: env.KIUNGO_RELEASE_TOKEN != ''
+        run: |
+          curl --fail-with-body -sS -X POST "$KIUNGO_API_URL/releases" \
+            -H "Authorization: Bearer $KIUNGO_RELEASE_TOKEN" -H "Content-Type: application/json" \
+            --data @release/kiungo-release.json

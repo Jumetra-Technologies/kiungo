@@ -6,7 +6,10 @@ import { applyEdits, explain, libraryForHeader, parseDiagnostics, quickFix, read
 import { PROJECT_BOARDS, sketchProfile } from "../src/project";
 
 /** Real avr-gcc 7.3 output (the compiler in arduino:avr 1.8.6), from the sketches beside each file. */
-const fixture = (name: string) => readFileSync(join(__dirname, "fixtures/gcc", name), "utf8");
+// Keep fixture contents consistent when Git checks them out with Windows CRLF endings.
+const fixture = (name: string) =>
+  readFileSync(join(__dirname, "fixtures/gcc", name), "utf8")
+    .replace(/\r\n?/g, "\n");
 const SKETCH_DIR = "/home/ada/Kiungo/Rover/sketch";
 const problems = (name: string) => parseDiagnostics(fixture(`${name}.txt`), SKETCH_DIR);
 const fixed = (name: string, d: Diagnostic, all?: Diagnostic[]) => {

@@ -1,7 +1,5 @@
 node_modules/
-dist/
 out/
-build/
 release/
 .kiungo/
 *.log
@@ -11,3 +9,9 @@ release/
 !.env.example
 coverage/
 .vite/
+.ci/
+*.tsbuildinfo
+# Build output. apps/desktop/build holds the installer's icons and is kept;
+# apps/desktop/.gitignore covers that app's own dist/, out/ and downloaded tools.
+/dist/
+/build/

@@ -1,13 +1,79 @@
-appId: app.kiungo.desktop
+# Installers for Windows, Linux and macOS (Phase Two section 13).
+# Signing and notarization are still to come (DSK-80).
+appId: com.kiungolabs.kiungo
 productName: Kiungo
+# The package is @kiungo/desktop; the binary and bundle are plain "kiungo".
+executableName: kiungo
+copyright: Copyright © 2026 Kiungo Labs Technologies
 directories:
-  output: release
+  output: dist
+  buildResources: build
+# kiungo://signin is how the website hands a sign-in back to the app (DSK-02):
+# the installers register it (Info.plist on macOS, the .desktop file on Linux, the registry on Windows).
+protocols:
+  - name: Kiungo
+    schemes: [kiungo]
+# In-app updates. electron-builder writes the .blockmap beside each installer (for downloading only
+# what changed) and app-update.yml into the app; the app sets the feed itself (src/main/index.ts,
+# UPDATE_FEED), and .github/scripts/desktop-update-feed.mjs writes the feed's <channel>.yml files.
+publish:
+  provider: generic
+  url: https://github.com/Jumetra-Technologies/kiungo/releases/download/desktop-feed
+  useMultipleRangeRequest: false
 files:
   - out/**
-asar: true
+  - package.json
+# Electron fuses, flipped in the installed binary (security audit, Nov 2026): an installed Kiungo is
+# never a general-purpose Node runtime or a debugger target, so nobody can borrow it (and the signed-in
+# session it holds) with ELECTRON_RUN_AS_NODE, NODE_OPTIONS or --inspect. main/index.ts refuses
+# Chromium's --remote-debugging-* switches too. Nothing in the app uses process.fork.
+# Asar integrity checking waits for code signing (DSK-80): without signed binaries it protects nothing,
+# and it must be tried on Windows and macOS installs before it ships.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableCookieEncryption: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+  enableEmbeddedAsarIntegrityValidation: false
+extraResources:
+  - from: resources/sketches
+    to: sketches
+  # The Hybrid runtime and adapter libraries, compiled into the user's sketch for a Hybrid run.
+  - from: resources/hybrid
+    to: hybrid
+  - from: resources/bin/${platform}-${arch}
+    to: bin
+    filter: ["**/*"]
+# Installer names are plain and predictable (no spaces), so the download page and
+# the release manifest can name them: Kiungo-0.11.0-win-x64.exe, Kiungo-0.11.0-mac-arm64.dmg,
+# Kiungo-0.11.0-linux-x86_64.AppImage.
+# The app icon: the Kiungo mark on a white tile, from build/icon.svg (Windows and Linux) and
+# build/icon-mac.svg (the same on Apple's icon grid). node apps/desktop/build/rasterize.mjs draws the
+# PNGs; electron-builder makes the .ico and .icns from them.
 win:
-  target: nsis
-mac:
-  target: dmg
+  target: [{ target: nsis, arch: [x64] }]
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+  icon: build/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
 linux:
-  target: [AppImage, deb]
+  target: [AppImage, deb, rpm]
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+  icon: build/icon.png
+  maintainer: Kiungo Labs Technologies
+  category: Education
+  synopsis: Build, code and run robotics projects
+  desktop:
+    entry:
+      Name: Kiungo
+      StartupWMClass: kiungo
+      MimeType: x-scheme-handler/kiungo;
+mac:
+  target: [{ target: dmg, arch: [x64, arm64] }]
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  icon: build/icon-mac.png
+  category: public.app-category.education

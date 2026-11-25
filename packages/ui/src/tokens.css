@@ -1,0 +1,73 @@
+/*
+ * Kiungo 2 design tokens. The app follows the system's light or dark mode
+ * (DSK-82); a [data-theme] on <html> overrides it.
+ */
+:root {
+  --k-navy: #01224b;
+  --k-teal: #059093;
+  --k-teal-text: #077a7d;
+  --k-amber: #f1ab32;
+  --k-gradient: linear-gradient(120deg, #173f8a 0%, #0b6b94 50%, #05a08f 100%);
+
+  --k-bg: #f6f8fb;
+  --k-surface: #ffffff;
+  --k-surface-2: #f1f5f9;
+  --k-text: #0f172a;
+  --k-text-muted: #5b6b80;
+  --k-border: #e2e8f0;
+  --k-primary: #077a7d;
+  --k-primary-text: #ffffff;
+  --k-good: #16a34a;
+  --k-warn: #d97706;
+  --k-bad: #dc2626;
+  --k-focus: #077a7d;
+  --k-led-off: #cbd5e1;
+  --k-led-on: #ef4444;
+  --k-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 18px rgba(13, 40, 90, 0.06);
+
+  --k-radius: 12px;
+  --k-radius-sm: 8px;
+  --k-font: "Inter Variable", Inter, "Segoe UI", system-ui, sans-serif;
+  --k-mono: "JetBrains Mono Variable", "JetBrains Mono", Consolas, monospace;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --k-bg: #0b1220;
+    --k-surface: #111a2b;
+    --k-surface-2: #172238;
+    --k-text: #e8eef6;
+    --k-text-muted: #94a3b8;
+    --k-border: #24324a;
+    --k-primary: #2fc4c6;
+    --k-primary-text: #04151a;
+    --k-good: #34d399;
+    --k-warn: #fbbf24;
+    --k-bad: #f87171;
+    --k-focus: #2fc4c6;
+    --k-led-off: #334155;
+    --k-teal-text: #2fc4c6;
+    --k-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --k-bg: #0b1220;
+  --k-surface: #111a2b;
+  --k-surface-2: #172238;
+  --k-text: #e8eef6;
+  --k-text-muted: #94a3b8;
+  --k-border: #24324a;
+  --k-primary: #2fc4c6;
+  --k-primary-text: #04151a;
+  --k-good: #34d399;
+  --k-warn: #fbbf24;
+  --k-bad: #f87171;
+  --k-focus: #2fc4c6;
+  --k-led-off: #334155;
+  --k-teal-text: #2fc4c6;
+  --k-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}

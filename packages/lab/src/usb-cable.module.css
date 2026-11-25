@@ -1,0 +1,174 @@
+/*
+ * The USB lead on Run. Timeline (plugging, 460 ms):
+ *   0–360   the lead drops in from above and overshoots a hair
+ *   360–420 settles into the socket
+ *   380–500 the click: the plug squashes, a ring flashes on the port
+ *   on      5 V runs down the cable, gently, while the sketch runs
+ * Unplugging (300 ms): a quick pull, then the lead lifts away.
+ */
+
+.lead {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 8px);
+  width: 84px;
+  height: 238px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.svg {
+  overflow: visible;
+  display: block;
+}
+
+.lead[data-state="off"] {
+  visibility: hidden;
+}
+
+.rig {
+  transform-box: view-box;
+}
+
+.lead[data-state="plugging"] .rig {
+  animation: plug-in 460ms cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+.lead[data-state="unplugging"] .rig {
+  animation: plug-out 300ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+.lead[data-state="unplugging"] .socket {
+  animation: fade-out 300ms ease-in 120ms both;
+}
+
+.plug {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.lead[data-state="plugging"] .plug {
+  animation: click 140ms ease-out 360ms both;
+}
+
+.ring {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.lead[data-state="plugging"] .ring {
+  animation: ring 420ms ease-out 380ms both;
+}
+
+.energy {
+  stroke-dasharray: 14 86;
+  opacity: 0;
+}
+.lead[data-state="on"] .energy {
+  opacity: 0.9;
+  animation: energy 1.4s linear infinite;
+  filter: drop-shadow(0 0 3px var(--primary));
+}
+
+.tag {
+  position: absolute;
+  left: calc(50% + 24px);
+  bottom: 40px;
+  white-space: nowrap;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--primary);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+.lead[data-state="on"] .tag {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes plug-in {
+  0% {
+    transform: translateY(-90px);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  78% {
+    transform: translateY(2.5px);
+  }
+  90% {
+    transform: translateY(-0.8px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes plug-out {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  25% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(-90px);
+    opacity: 0;
+  }
+}
+
+@keyframes click {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  40% {
+    transform: scaleY(0.93) scaleX(1.03);
+  }
+}
+
+@keyframes ring {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes energy {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lead[data-state="plugging"] .rig,
+  .lead[data-state="unplugging"] .rig,
+  .lead[data-state="plugging"] .plug,
+  .lead[data-state="plugging"] .ring,
+  .lead[data-state="on"] .energy {
+    animation: none;
+  }
+  .lead[data-state="unplugging"] {
+    visibility: hidden;
+  }
+}

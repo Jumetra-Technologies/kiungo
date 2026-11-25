@@ -1,0 +1,227 @@
+/*
+ * Kiungo mark: colours, wordmark, and the loading and broken-link motion.
+ * One loop of the loader is 2 s:
+ *   0–40%   traces draw out from the link to the pads
+ *   35–55%  pads light up
+ *   0–100%  a pulse runs once round the slot (the link)
+ *   beads   fill top to bottom, then rest
+ */
+
+.mark {
+  overflow: visible;
+}
+
+.beads {
+  fill: var(--kiungo-amber);
+}
+.stem {
+  fill: var(--kiungo-stem);
+}
+.arms {
+  fill: var(--kiungo-teal);
+}
+.slot {
+  fill: var(--kiungo-teal);
+  stroke: var(--kiungo-cut);
+}
+.cut {
+  fill: none;
+  stroke: var(--kiungo-cut);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cutFill {
+  fill: var(--kiungo-cut);
+}
+.pad {
+  fill: var(--kiungo-amber);
+}
+.pulse {
+  fill: none;
+  stroke: var(--kiungo-amber);
+  stroke-linecap: round;
+  stroke-dasharray: 14 86;
+  opacity: 0;
+}
+.node,
+.bead {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.stemSide,
+.armSide,
+.beads {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Wordmark */
+.word {
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: var(--kiungo-word);
+}
+.sub {
+  margin-top: 0.2rem;
+  font-weight: 600;
+  font-size: 0.66rem;
+  letter-spacing: 0.01em;
+  color: var(--kiungo-teal-text);
+  white-space: nowrap;
+}
+
+/* ----- Loading ----- */
+.loading .trace {
+  stroke-dasharray: 100;
+  animation: kiungo-draw 2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+.loading .traceLow {
+  animation-delay: 0.12s;
+}
+.loading .node {
+  animation: kiungo-pad 2s ease-in-out infinite;
+}
+.loading .nodeLow {
+  animation-delay: 0.12s;
+}
+.loading .pulse {
+  opacity: 1;
+  animation: kiungo-run 2s linear infinite;
+}
+.loading .bead {
+  animation: kiungo-bead 2s ease-in-out infinite;
+}
+.loading .bead:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.loading .bead:nth-child(3) {
+  animation-delay: 0.24s;
+}
+.loading .bead:nth-child(4) {
+  animation-delay: 0.36s;
+}
+.loading .bead:nth-child(5) {
+  animation-delay: 0.48s;
+}
+
+@keyframes kiungo-draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  40%,
+  85% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -100;
+  }
+}
+@keyframes kiungo-pad {
+  0%,
+  30% {
+    transform: scale(0.55);
+    opacity: 0.35;
+  }
+  45% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  55%,
+  85% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.55);
+    opacity: 0.35;
+  }
+}
+@keyframes kiungo-run {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+@keyframes kiungo-bead {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: translateX(-1.5px);
+  }
+  25%,
+  60% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ----- Broken link (404): the two halves come apart ----- */
+.broken .stemSide,
+.broken .beads {
+  animation: kiungo-part-left 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both;
+}
+.broken .armSide {
+  animation: kiungo-part-right 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both;
+}
+.broken .node {
+  animation: kiungo-flicker 2.4s steps(1, end) 1.2s infinite;
+}
+@keyframes kiungo-part-left {
+  to {
+    transform: translate(-9px, 3px) rotate(-5deg);
+  }
+}
+@keyframes kiungo-part-right {
+  to {
+    transform: translate(13px, -4px) rotate(9deg);
+  }
+}
+@keyframes kiungo-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  8% {
+    opacity: 0.2;
+  }
+  12% {
+    opacity: 1;
+  }
+  15% {
+    opacity: 0.35;
+  }
+  18% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading .trace,
+  .loading .pulse,
+  .loading .bead {
+    animation: none;
+  }
+  .loading .trace {
+    stroke-dashoffset: 0;
+  }
+  .loading .pulse {
+    opacity: 0;
+  }
+  .loading .node {
+    animation: kiungo-soft 2s ease-in-out infinite;
+  }
+  .broken .stemSide,
+  .broken .beads,
+  .broken .armSide {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+  .broken .node {
+    animation: none;
+  }
+  @keyframes kiungo-soft {
+    50% {
+      opacity: 0.45;
+    }
+  }
+}

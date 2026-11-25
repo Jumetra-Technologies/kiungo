@@ -1,0 +1,10 @@
+In file included from /home/ada/.config/Kiungo/arduino/data/packages/arduino/hardware/avr/1.8.6/cores/arduino/USBAPI.h:27:0,
+                 from /home/ada/.config/Kiungo/arduino/data/packages/arduino/hardware/avr/1.8.6/cores/arduino/Arduino.h:234,
+                 from /home/ada/.config/Kiungo/builds/prj-1/sketch/sketch.ino.cpp:1:
+/usr/lib/avr/include/util/delay.h:112:3: warning: #warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed" [-Wcpp]
+ # warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+   ^~~~~~~
+/home/ada/Kiungo/Rover/sketch/sketch.ino: In function 'void setup()':
+/home/ada/Kiungo/Rover/sketch/sketch.ino:4:1: error: expected ';' before '}' token
+ }
+ ^
